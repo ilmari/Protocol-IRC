@@ -63,6 +63,13 @@ sub on_read
 
    if( $$buffref =~ s/^(.*)$CRLF// ) {
       my $message = Net::Async::IRC::Message->new_from_line( $1 );
+
+      # Handle PING directly
+      if( $message->command eq "PING" ) {
+         $self->send_message( "PONG", undef, $message->arg(0) );
+         return 1;
+      }
+
       $self->{on_message}->( $self, $message );
       return 1;
    }
