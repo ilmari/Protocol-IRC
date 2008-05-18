@@ -9,6 +9,8 @@ use strict;
 
 our $VERSION = '0.01';
 
+use Carp;
+
 sub new_from_line
 {
    my $class = shift;
@@ -33,6 +35,30 @@ sub new
 {
    my $class = shift;
    my ( $command, $prefix, @args ) = @_;
+
+   # IRC is case-insensitive for commands, but we'd like them in uppercase
+   # to keep things simpler
+   $command = uc $command;
+
+   # Less strict checking than RFC 2812 because a lot of servers lately seem
+   # to be more flexible than that.
+
+   $command =~ m/^[A-Z]+$/ or $command =~ m/^\d\d\d$/ or
+      croak "Command must be just letters or three digits";
+
+   if( defined $prefix ) {
+      $prefix =~ m/[ \t\x0d\x0a]/ and 
+         croak "Prefix must not contain whitespace";
+   }
+
+   foreach ( @args[0 .. $#args-1] ) { # Not the final
+      m/[ \t\x0d\x0a]/ and
+         croak "Argument must not contain whitespace";
+   }
+
+   exists $args[-1] and
+      $args[-1] =~ m/[\x0d\x0a]/ and
+         croak "Final argument must not contain a linefeed";
 
    my $self = {
       command => $command,

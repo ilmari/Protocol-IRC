@@ -3,6 +3,7 @@
 use strict;
 
 use Test::More no_plan => 1;
+use Test::Exception;
 
 use Net::Async::IRC::Message;
 
@@ -32,27 +33,27 @@ my $msg = Net::Async::IRC::Message->new( "command", "prefix", "arg1", "arg2" );
 ok( defined $msg, 'defined $msg' );
 ok( $msg->isa( "Net::Async::IRC::Message" ), '$msg isa Net::Async::IRC::Message' );
 
-is( $msg->command, "command", '$msg->command' );
+is( $msg->command, "COMMAND", '$msg->command' );
 is( $msg->prefix,  "prefix",  '$msg->prefix' );
 is( $msg->arg(0),  "arg1",    '$msg->arg(0)' );
 is( $msg->arg(1),  "arg2",    '$msg->arg(1)' );
 is_deeply( [ $msg->args ], [qw( arg1 arg2 )], '$msg->args' );
 
-is( $msg->stream_to_line, ":prefix command arg1 arg2", '$msg->stream_to_line' );
+is( $msg->stream_to_line, ":prefix COMMAND arg1 arg2", '$msg->stream_to_line' );
 
 test_line "Basic",
-   "command",
-   command => "command",
+   "COMMAND",
+   command => "COMMAND",
    prefix  => "",
    args    => [],
-   stream  => "command";
+   stream  => "COMMAND";
 
 test_line "Prefixed",
-   ":someprefix command",
-   command => "command",
+   ":someprefix COMMAND",
+   command => "COMMAND",
    prefix  => "someprefix",
    args    => [],
-   stream  => ":someprefix command";
+   stream  => ":someprefix COMMAND";
 
 test_line "With one arg",
    "JOIN #channel",
@@ -81,3 +82,19 @@ test_line "With long final",
    prefix  => "",
    args    => [ "Here is a long message to say" ],
    stream  => "MESSAGE :Here is a long message to say";
+
+throws_ok( sub { Net::Async::IRC::Message->new( "some command" ) },
+           qr/^Command must be just letters or three digits/,
+           'Command with spaces fails' );
+
+throws_ok( sub { Net::Async::IRC::Message->new( "cmd", "prefix with spaces" ) },
+           qr/^Prefix must not contain whitespace/,
+           'Command with spaces fails' );
+
+throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, "foo\x0d\x{0d}bar" ) },
+           qr/^Final argument must not contain a linefeed/,
+           'Final with linefeed fails' );
+
+throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, "foo bar", "splot wibble" ) },
+           qr/^Argument must not contain whitespace/,
+           'Argument with whitespace fails' );
