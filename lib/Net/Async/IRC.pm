@@ -15,6 +15,12 @@ use Carp;
 
 use Net::Async::IRC::Message;
 
+BEGIN {
+   if ( eval { Time::HiRes::time(); 1 } ) {
+      Time::HiRes->import( qw( time ) );
+   }
+}
+
 my $CRLF = "\x0d\x0a"; # More portable than \r\n
 
 =head1 NAME
@@ -49,9 +55,37 @@ sub new
    my $on_message = delete $args{on_message} or $class->can( "on_message" ) or
       croak "Expected either an 'on_message' callback or to be a subclass that can ->on_message";
 
-   my $self = $class->SUPER::new( %args );
+   my $on_closed = delete $args{on_closed};
+
+   my $self = $class->SUPER::new(
+      %args,
+
+      on_closed => sub {
+         my ( $self ) = @_;
+
+         my $loop = $self->get_loop;
+
+         if( defined $self->{pingtimer_id} ) {
+            $loop->cancel_timer( $self->{pingtimer_id} );
+            undef $self->{pingtimer_id};
+         }
+
+         if( defined $self->{pongtimer_id} ) {
+            $loop->cancel_timer( $self->{pongtimer_id} );
+            undef $self->{pongtimer_id};
+         }
+
+         $on_closed->() if $on_closed;
+      },
+   );
 
    $self->{on_message} = $on_message;
+
+   $self->{pingtime} = defined $args{pingtime} ? $args{pingtime} : 60;
+   $self->{pongtime} = defined $args{pongtime} ? $args{pongtime} : 10;
+
+   $self->{on_ping_timeout} = $args{on_ping_timeout};
+   $self->{on_pong_reply}   = $args{on_pong_reply};
 
    return $self;
 }
@@ -64,9 +98,28 @@ sub on_read
    if( $$buffref =~ s/^(.*)$CRLF// ) {
       my $message = Net::Async::IRC::Message->new_from_line( $1 );
 
+      $self->_reset_pingtimer;
+
       # Handle PING directly
       if( $message->command eq "PING" ) {
          $self->send_message( "PONG", undef, $message->arg(0) );
+         return 1;
+      }
+
+      if( $message->command eq "PONG" ) {
+         # Protect against spurious PONGs from the server
+         return unless defined $self->{pongtimer_id};
+
+         my $lag = time() - $self->{ping_send_time};
+
+         $self->{current_lag} = $lag;
+         $self->{on_pong_reply}->( $self, $lag ) if $self->{on_pong_reply};
+
+         my $loop = $self->get_loop;
+
+         $loop->cancel_timer( $self->{pongtimer_id} );
+         undef $self->{pongtimer_id};
+
          return 1;
       }
 
@@ -92,6 +145,41 @@ sub send_message
    }
 
    $self->write( $message->stream_to_line . $CRLF );
+}
+
+sub _reset_pingtimer
+{
+   my $self = shift;
+
+   my $loop = $self->get_loop or return;
+
+   # Manage the PING timer
+   if( defined $self->{pingtimer_id} ) {
+      $loop->cancel_timer( $self->{pingtimer_id} );
+   }
+
+   $self->{pingtimer_id} = $loop->enqueue_timer(
+      delay => $self->{pingtime},
+
+      code  => sub {
+         undef $self->{pingtimer_id};
+
+         my $now = time();
+
+         $self->send_message( "PING", undef, "$now" );
+
+         $self->{ping_send_time} = $now;
+
+         $self->{pongtimer_id} = $loop->enqueue_timer(
+            delay => $self->{pongtime},
+            code  => sub {
+               undef $self->{pongtimer_id};
+
+               $self->{on_ping_timeout}->( $self ) if defined $self->{on_ping_timeout};
+            },
+         );
+      },
+   );
 }
 
 # Keep perl happy; keep Britain tidy
