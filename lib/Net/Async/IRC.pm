@@ -13,7 +13,13 @@ use base qw( IO::Async::Stream );
 
 use Carp;
 
+use Socket qw( SOCK_STREAM );
+
 use Net::Async::IRC::Message;
+
+use constant STATE_UNCONNECTED => 0; # No network connection
+use constant STATE_CONNECTING  => 1; # Awaiting network connection
+use constant STATE_CONNECTED   => 2; # Socket connected
 
 BEGIN {
    if ( eval { Time::HiRes::time(); 1 } ) {
@@ -79,6 +85,8 @@ sub new
       },
    );
 
+   $self->{state} = STATE_UNCONNECTED;
+
    $self->{on_message} = $on_message;
 
    $self->{pingtime} = defined $args{pingtime} ? $args{pingtime} : 60;
@@ -88,6 +96,51 @@ sub new
    $self->{on_pong_reply}   = $args{on_pong_reply};
 
    return $self;
+}
+
+# TODO: Most of this needs to be moved into an abstract Net::Async::Connection role
+sub connect
+{
+   my $self = shift;
+   my %args = @_;
+
+   $self->{state} == STATE_UNCONNECTED or croak "Cannot ->connect - not in unconnected state";
+
+   my $loop = $self->get_loop or croak "Cannot ->connect a ".ref($self)." that is not in a Loop";
+
+   my $on_connected = delete $args{on_connected};
+   ref $on_connected eq "CODE" or croak "Expected 'on_connected' as CODE reference";
+
+   my $on_error = delete $args{on_error};
+   ref $on_error eq "CODE" or croak "Expected 'on_error' as CODE reference";
+
+   $self->{state} = STATE_CONNECTING;
+
+   $args{service}  ||= "ircd";
+   $args{socktype} ||= SOCK_STREAM;
+
+   $loop->connect(
+      %args,
+
+      on_connected => sub {
+         my ( $sock ) = @_;
+
+         $self->set_handle( $sock );
+         $self->{state} = STATE_CONNECTED;
+
+         $on_connected->( $self );
+      },
+
+      on_resolve_error => sub {
+         $self->{state} = STATE_UNCONNECTED;
+         $on_error->( "Cannot resolve - $_[0]" );
+      },
+
+      on_connect_error => sub {
+         $self->{state} = STATE_UNCONNECTED;
+         $on_error->( "Cannot connect" )
+      },
+   );
 }
 
 sub on_read
