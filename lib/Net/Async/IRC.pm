@@ -20,6 +20,7 @@ use Net::Async::IRC::Message;
 use constant STATE_UNCONNECTED => 0; # No network connection
 use constant STATE_CONNECTING  => 1; # Awaiting network connection
 use constant STATE_CONNECTED   => 2; # Socket connected
+use constant STATE_LOGGEDIN    => 3; # USER/NICK send, server confirmed login
 
 BEGIN {
    if ( eval { Time::HiRes::time(); 1 } ) {
@@ -143,6 +144,49 @@ sub connect
    );
 }
 
+sub login
+{
+   my $self = shift;
+   my %args = @_;
+
+   my $nick     = delete $args{nick} or croak "Need a login nick";
+   my $user     = delete $args{user} || $ENV{LOGNAME} || getpwuid($>) or croak "Need a login user";
+   my $realname = delete $args{realname} || "Net::Async::IRC client $VERSION";
+   my $pass     = delete $args{pass};
+
+   my $on_login = delete $args{on_login};
+   ref $on_login eq "CODE" or croak "Expected 'on_login' as a CODE reference";
+
+   if( $self->{state} == STATE_CONNECTED ) {
+      $self->send_message( "PASS", undef, $pass ) if defined $pass;
+
+      $self->send_message( "USER", undef, $user, "0", "*", $realname );
+
+      $self->send_message( "NICK", undef, $nick );
+
+      $self->{on_login} = $on_login;
+   }
+   elsif( $self->{state} == STATE_UNCONNECTED ) {
+      $self->connect(
+         %args,
+
+         on_connected => sub {
+            $self->login(
+               nick     => $nick,
+               user     => $user,
+               realname => $realname,
+               pass     => $pass,
+
+               on_login => $on_login,
+            );
+         },
+      );
+   }
+   else {
+      croak "Cannot login - bad state $self->{state}";
+   }
+}
+
 sub on_read
 {
    my $self = shift;
@@ -174,6 +218,13 @@ sub on_read
          undef $self->{pongtimer_id};
 
          return 1;
+      }
+
+      if( $message->command eq "001" ) {
+         $self->{on_login}->( $self ) if defined $self->{on_login};
+         $self->{state} = STATE_LOGGEDIN;
+         undef $self->{on_login};
+         # Don't eat it
       }
 
       $self->{on_message}->( $self, $message );
