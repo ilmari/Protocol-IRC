@@ -86,7 +86,7 @@ sub new
       },
    );
 
-   $self->{state} = STATE_UNCONNECTED;
+   $self->{state} = defined $self->read_handle ? STATE_CONNECTED : STATE_UNCONNECTED;
 
    $self->{on_message} = $on_message;
 
@@ -97,6 +97,14 @@ sub new
    $self->{on_pong_reply}   = $args{on_pong_reply};
 
    return $self;
+}
+
+sub set_handles
+{
+   my $self = shift;
+   $self->SUPER::set_handles( @_ );
+
+   $self->{state} = defined $self->read_handle ? STATE_CONNECTED : STATE_UNCONNECTED;
 }
 
 # TODO: Most of this needs to be moved into an abstract Net::Async::Connection role
@@ -126,7 +134,6 @@ sub connect
          my ( $sock ) = @_;
 
          $self->set_handle( $sock );
-         $self->{state} = STATE_CONNECTED;
 
          $on_connected->( $self );
       },
