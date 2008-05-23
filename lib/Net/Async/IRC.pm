@@ -96,6 +96,8 @@ sub new
    $self->{on_ping_timeout} = $args{on_ping_timeout};
    $self->{on_pong_reply}   = $args{on_pong_reply};
 
+   $self->{isupport} = {};
+
    return $self;
 }
 
@@ -205,6 +207,8 @@ sub on_read
 
       $self->_reset_pingtimer;
 
+      # TODO: These are getting messy...
+
       # Handle PING directly
       if( $message->command eq "PING" ) {
          $self->send_message( "PONG", undef, $message->arg(0) );
@@ -233,6 +237,10 @@ sub on_read
          $self->{state} = STATE_LOGGEDIN;
          undef $self->{on_login};
          # Don't eat it
+      }
+
+      if( $message->command eq "005" ) {
+         $self->_incoming_005( $message );
       }
 
       $self->{on_message}->( $self, $message );
@@ -292,6 +300,124 @@ sub _reset_pingtimer
          );
       },
    );
+}
+
+# ISUPPORT and related
+
+sub _incoming_005
+{
+   my $self = shift;
+   my ( $message ) = @_;
+
+   my ( undef, @isupport ) = $message->args;
+   pop @isupport; # Text message at the end
+
+   foreach ( @isupport ) {
+      next unless m/^([A-Z]+)(?:=(.*))?$/;
+      my ( $name, $value ) = ( $1, $2 );
+
+      $value = 1 if !defined $value;
+
+      $self->{isupport}->{$name} = $value;
+
+      if( $name eq "PREFIX" ) {
+         my $prefix = $value;
+
+         my ( $prefix_modes, $prefix_flags ) = $prefix =~ m/^\(([a-z]+)\)(.+)$/;
+
+         $self->{isupport}->{PREFIX_MODES} = $prefix_modes;
+         $self->{isupport}->{PREFIX_FLAGS} = $prefix_flags;
+
+         my %prefix_map;
+         $prefix_map{substr $prefix_modes, $_, 1} = substr $prefix_flags, $_, 1 for ( 0 .. length($prefix_modes) - 1 );
+
+         $self->{isupport}->{PREFIX_MAP_M2F} = \%prefix_map;
+         $self->{isupport}->{PREFIX_MAP_F2M} = { reverse %prefix_map };
+      }
+      elsif( $name eq "CHANMODES" ) {
+         $self->{isupport}->{CHANMODES_LIST} = [ split( m/,/, $value ) ];
+      }
+      elsif( $name eq "CASEMAPPING" ) {
+         $self->{casemap_1459} = 1 if( lc $value eq "rfc1459" );
+
+         $self->{nick_folded} = $self->casefold_name( $self->{nick} );
+      }
+   }
+
+   return 1;
+}
+
+sub ISUPPORT
+{
+   my $self = shift;
+   my ( $flag ) = @_;
+
+   return exists $self->{isupport}->{$flag} ? 
+                 $self->{isupport}->{$flag} : undef;
+}
+
+sub cmp_prefix_flags
+{
+   my $self = shift;
+   my ( $lhs, $rhs ) = @_;
+
+   return undef unless defined $lhs and defined $rhs;
+
+   # As a special case, compare emptystring as being lower than voice
+   return 0 if $lhs eq "" and $rhs eq "";
+   return 1 if $rhs eq "";
+   return -1 if $lhs eq "";
+
+   my $PREFIX_FLAGS = $self->ISUPPORT( "PREFIX_FLAGS" );
+
+   ( my $lhs_index = index $PREFIX_FLAGS, $lhs ) > -1 or return undef;
+   ( my $rhs_index = index $PREFIX_FLAGS, $rhs ) > -1 or return undef;
+
+   # IRC puts these in greatest-first, so we need to swap the ordering here
+   return $rhs_index <=> $lhs_index;
+}
+
+sub cmp_prefix_modes
+{
+   my $self = shift;
+   my ( $lhs, $rhs ) = @_;
+
+   return undef unless defined $lhs and defined $rhs;
+
+   my $PREFIX_MODES = $self->ISUPPORT( "PREFIX_MODES" );
+
+   ( my $lhs_index = index $PREFIX_MODES, $lhs ) > -1 or return undef;
+   ( my $rhs_index = index $PREFIX_MODES, $rhs ) > -1 or return undef;
+
+   # IRC puts these in greatest-first, so we need to swap the ordering here
+   return $rhs_index <=> $lhs_index;
+}
+
+sub prefix_mode2flag
+{
+   my $self = shift;
+   my ( $mode ) = @_;
+
+   return $self->{isupport}->{PREFIX_MAP_M2F}->{$mode};
+}
+
+sub prefix_flag2mode
+{
+   my $self = shift;
+   my ( $flag ) = @_;
+
+   return $self->{isupport}->{PREFIX_MAP_F2M}->{$flag};
+}
+
+sub casefold_name
+{
+   my $self = shift;
+   my ( $nick ) = @_;
+
+   # Squash the 'capital' [\] into lowercase {|}
+   $nick =~ tr/[\\]/{|}/ if $self->{casemap_1459};
+
+   return lc $nick;
 }
 
 # Keep perl happy; keep Britain tidy
