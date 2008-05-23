@@ -52,7 +52,7 @@ sub new
    my $class = shift;
    my %args = @_;
 
-   my $on_message = delete $args{on_message} or $class->can( "on_message" ) or
+   my $on_message = delete $args{on_message} || $class->can( "on_message" ) or
       croak "Expected either an 'on_message' callback or to be a subclass that can ->on_message";
 
    my $on_closed = delete $args{on_closed};
