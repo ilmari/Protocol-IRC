@@ -113,7 +113,6 @@ sub connect
    ref $on_connected eq "CODE" or croak "Expected 'on_connected' as CODE reference";
 
    my $on_error = delete $args{on_error};
-   ref $on_error eq "CODE" or croak "Expected 'on_error' as CODE reference";
 
    $self->{state} = STATE_CONNECTING;
 
@@ -134,12 +133,14 @@ sub connect
 
       on_resolve_error => sub {
          $self->{state} = STATE_UNCONNECTED;
-         $on_error->( "Cannot resolve - $_[0]" );
+
+         $args{on_resolve_error} ? $args{on_resolve_error}->( @_ ) : $on_error->( "Cannot resolve - $_[0]" );
       },
 
       on_connect_error => sub {
          $self->{state} = STATE_UNCONNECTED;
-         $on_error->( "Cannot connect" )
+
+         $args{on_connect_error} ? $args{on_connect_error}->( @_ ) : $on_error->( "Cannot connect" )
       },
    );
 }
