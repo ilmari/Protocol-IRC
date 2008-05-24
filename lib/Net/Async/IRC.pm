@@ -302,6 +302,17 @@ sub _reset_pingtimer
    );
 }
 
+sub split_prefix
+{
+   my $self = shift;
+   my ( $prefix ) = @_;
+
+   return ( $1, $2, $3 ) if $prefix =~ m/^(.*?)!(.*?)@(.*)$/;
+
+   # $prefix doesn't split into nick!ident@host so presume host only
+   return ( undef, undef, $prefix );
+}
+
 # ISUPPORT and related
 
 sub _incoming_005
