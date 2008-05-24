@@ -98,6 +98,10 @@ sub new
 
    $self->{isupport} = {};
 
+   $self->{nick}     = $args{nick};
+   $self->{user}     = $args{user} || $ENV{LOGNAME} || getpwuid($>);
+   $self->{realname} = $args{realname} || "Net::Async::IRC client $VERSION";
+
    return $self;
 }
 
@@ -159,10 +163,12 @@ sub login
    my $self = shift;
    my %args = @_;
 
-   my $nick     = delete $args{nick} or croak "Need a login nick";
-   my $user     = delete $args{user} || $ENV{LOGNAME} || getpwuid($>) or croak "Need a login user";
-   my $realname = delete $args{realname} || "Net::Async::IRC client $VERSION";
+   my $nick     = delete $args{nick} || $self->{nick} or croak "Need a login nick";
+   my $user     = delete $args{user} || $self->{user} or croak "Need a login user";
+   my $realname = delete $args{realname} || $self->{realname};
    my $pass     = delete $args{pass};
+
+   $self->{nick} = $nick if !defined $self->{nick};
 
    my $on_login = delete $args{on_login};
    ref $on_login eq "CODE" or croak "Expected 'on_login' as a CODE reference";

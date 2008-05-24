@@ -23,6 +23,9 @@ my $listensock = IO::Socket::INET->new( LocalAddr => 'localhost', Listen => 1 ) 
 my $addr = $listensock->sockname;
 
 my $irc = Net::Async::IRC->new(
+   user => "defaultuser",
+   realname => "Default Real name",
+
    on_message => sub { "IGNORE" },
 );
 
@@ -59,8 +62,6 @@ my $logged_in = 0;
 
 $irc->login(
    nick => "MyNick",
-   user => "myuser",
-   realname => "Real name",
 
    on_login => sub { $logged_in = 1 },
 );
@@ -69,10 +70,10 @@ $serverstream = "";
 
 wait_for_stream { $serverstream =~ m/$CRLF.*$CRLF/ } $newclient => $serverstream;
 
-is( $serverstream, "USER myuser 0 * :Real name$CRLF" . 
+is( $serverstream, "USER defaultuser 0 * :Default Real name$CRLF" . 
                    "NICK MyNick$CRLF", 'Server stream after login' );
 
-$newclient->syswrite( ":irc.example.com 001 MyNick :Welcome to IRC MyNick!myuser\@your.host.here$CRLF" );
+$newclient->syswrite( ":irc.example.com 001 MyNick :Welcome to IRC MyNick!defaultuser\@your.host.here$CRLF" );
 
 wait_for { $logged_in };
 
