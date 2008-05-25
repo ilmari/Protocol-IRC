@@ -215,7 +215,7 @@ sub on_read
       my $message = Net::Async::IRC::Message->new_from_line( $1 );
 
       my ( $src_nick, undef, undef ) = $self->split_prefix( $message->prefix );
-      my $prefix_is_me = ( defined $src_nick and $self->casefold_name( $src_nick ) eq $self->{nick_folded} );
+      my $prefix_is_me = defined $src_nick && $self->is_nick_me( $src_nick );
 
       $self->_reset_pingtimer;
 
@@ -327,6 +327,14 @@ sub split_prefix
 
    # $prefix doesn't split into nick!ident@host so presume host only
    return ( undef, undef, $prefix );
+}
+
+sub is_nick_me
+{
+   my $self = shift;
+   my ( $nick ) = @_;
+
+   return $self->casefold_name( $nick ) eq $self->{nick_folded};
 }
 
 # ISUPPORT and related
