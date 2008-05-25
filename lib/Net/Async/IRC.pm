@@ -214,8 +214,7 @@ sub on_read
    if( $$buffref =~ s/^(.*)$CRLF// ) {
       my $message = Net::Async::IRC::Message->new_from_line( $1 );
 
-      my ( $src_nick, undef, undef ) = $self->split_prefix( $message->prefix );
-      my $prefix_is_me = defined $src_nick && $self->is_nick_me( $src_nick );
+      my $prefix_is_me = $self->is_prefix_me( $message->prefix );
 
       $self->_reset_pingtimer;
 
@@ -335,6 +334,16 @@ sub is_nick_me
    my ( $nick ) = @_;
 
    return $self->casefold_name( $nick ) eq $self->{nick_folded};
+}
+
+sub is_prefix_me
+{
+   my $self = shift;
+   my ( $prefix ) = @_;
+
+   my ( $nick, undef, undef ) = $self->split_prefix( $prefix );
+
+   return defined $nick && $self->is_nick_me( $nick );
 }
 
 # ISUPPORT and related
