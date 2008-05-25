@@ -98,7 +98,8 @@ sub new
 
    $self->{isupport} = {};
 
-   $self->{nick}     = $args{nick};
+   $self->set_nick( $args{nick} );
+
    $self->{user}     = $args{user} || $ENV{LOGNAME} || getpwuid($>);
    $self->{realname} = $args{realname} || "Net::Async::IRC client $VERSION";
 
@@ -168,7 +169,9 @@ sub login
    my $realname = delete $args{realname} || $self->{realname};
    my $pass     = delete $args{pass};
 
-   $self->{nick} = $nick if !defined $self->{nick};
+   if( !defined $self->{nick} ) {
+      $self->set_nick( $nick );
+   }
 
    my $on_login = delete $args{on_login};
    ref $on_login eq "CODE" or croak "Expected 'on_login' as a CODE reference";
@@ -211,9 +214,16 @@ sub on_read
    if( $$buffref =~ s/^(.*)$CRLF// ) {
       my $message = Net::Async::IRC::Message->new_from_line( $1 );
 
+      my ( $src_nick, undef, undef ) = $self->split_prefix( $message->prefix );
+      my $prefix_is_me = ( defined $src_nick and $self->casefold_name( $src_nick ) eq $self->{nick_folded} );
+
       $self->_reset_pingtimer;
 
       # TODO: These are getting messy...
+
+      if( $message->command eq "NICK" and $prefix_is_me ) {
+         $self->set_nick( $message->arg(0) );
+      }
 
       # Handle PING directly
       if( $message->command eq "PING" ) {
@@ -435,6 +445,44 @@ sub casefold_name
    $nick =~ tr/[\\]/{|}/ if $self->{casemap_1459};
 
    return lc $nick;
+}
+
+# Some state accessors
+sub nick
+{
+   my $self = shift;
+   return $self->{nick};
+}
+
+sub nick_folded
+{
+   my $self = shift;
+   return $self->{nick_folded};
+}
+
+# Some state mutators
+sub set_nick
+{
+   my $self = shift;
+   ( $self->{nick} ) = @_;
+   $self->{nick_folded} = $self->casefold_name( $self->{nick} );
+}
+
+# Wrapper for sending command to server
+sub change_nick
+{
+   my $self = shift;
+   my ( $newnick ) = @_;
+
+   if( $self->{state} == STATE_UNCONNECTED or $self->{state} == STATE_CONNECTING ) {
+      $self->set_nick( $newnick );
+   }
+   elsif( $self->{state} == STATE_CONNECTED or $self->{state} == STATE_LOGGEDIN ) {
+      $self->send_message( "NICK", undef, $newnick );
+   }
+   else {
+      croak "Cannot change_nick - bad state $self->{state}";
+   }
 }
 
 # Keep perl happy; keep Britain tidy
