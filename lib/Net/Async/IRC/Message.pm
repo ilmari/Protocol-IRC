@@ -69,6 +69,18 @@ sub new
    return bless $self, $class;
 }
 
+use overload '""' => "STRING";
+
+sub STRING
+{
+   my $self = shift;
+   my $class = ref $self;
+   return $class . "[" . 
+                    ( defined $self->{prefix} ? "prefix=$self->{prefix}," : "" ) .
+                    "cmd=$self->{command}," . 
+                    "args=(" . join( ",", @{ $self->{args} } ) . ")]";
+}
+
 sub command
 {
    my $self = shift;
