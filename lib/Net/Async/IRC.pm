@@ -59,9 +59,6 @@ sub new
    my $class = shift;
    my %args = @_;
 
-   my $on_message = delete $args{on_message} || $class->can( "on_message" ) or
-      croak "Expected either an 'on_message' callback or to be a subclass that can ->on_message";
-
    my $on_closed = delete $args{on_closed};
 
    my $self = $class->SUPER::new(
@@ -88,7 +85,7 @@ sub new
 
    $self->{state} = defined $self->read_handle ? STATE_CONNECTED : STATE_UNCONNECTED;
 
-   $self->{on_message} = $on_message;
+   $self->{$_} = $args{$_} for grep m/^on_message/, keys %args;
 
    $self->{pingtime} = defined $args{pingtime} ? $args{pingtime} : 60;
    $self->{pongtime} = defined $args{pongtime} ? $args{pongtime} : 10;
@@ -226,6 +223,17 @@ sub on_read
    return 0;
 }
 
+# Try to run the named method, returning undef if the method doesn't exist
+sub _invoke
+{
+   my $self = shift;
+   my $method = shift;
+
+   return $self->{$method}->( $self, @_ ) if $self->{$method};
+   return $self->$method( @_ ) if $self->can( $method );
+   return undef;
+}
+
 sub incoming_message
 {
    my $self = shift;
@@ -233,15 +241,13 @@ sub incoming_message
 
    my $command = $message->command;
 
-   if( $self->is_prefix_me( $message->prefix ) ) {
-      my $method = "on_message_self_$command";
-      return if $self->can( $method ) and $self->$method( $message );
-   }
+   my $prefix_is_me = $self->is_prefix_me( $message->prefix );
 
-   my $method = "on_message_$command";
-   return if $self->can( $method ) and $self->$method( $message );
+   return if $prefix_is_me and $self->_invoke( "on_message_self_$command", $message );
 
-   $self->{on_message}->( $self, $message );
+   return if $self->_invoke( "on_message_$command", $message );
+
+   return if $self->_invoke( "on_message", $message );
 }
 
 sub on_message_self_NICK
