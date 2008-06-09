@@ -214,55 +214,63 @@ sub on_read
    if( $$buffref =~ s/^(.*)$CRLF// ) {
       my $message = Net::Async::IRC::Message->new_from_line( $1 );
 
-      my $prefix_is_me = $self->is_prefix_me( $message->prefix );
-
       $self->_reset_pingtimer;
+      $self->incoming_message( $message );
 
-      # TODO: These are getting messy...
-
-      if( $message->command eq "NICK" and $prefix_is_me ) {
-         $self->set_nick( $message->arg(0) );
-      }
-
-      # Handle PING directly
-      if( $message->command eq "PING" ) {
-         $self->send_message( "PONG", undef, $message->arg(0) );
-         return 1;
-      }
-
-      if( $message->command eq "PONG" ) {
-         # Protect against spurious PONGs from the server
-         return unless defined $self->{pongtimer_id};
-
-         my $lag = time() - $self->{ping_send_time};
-
-         $self->{current_lag} = $lag;
-         $self->{on_pong_reply}->( $self, $lag ) if $self->{on_pong_reply};
-
-         my $loop = $self->get_loop;
-
-         $loop->cancel_timer( $self->{pongtimer_id} );
-         undef $self->{pongtimer_id};
-
-         return 1;
-      }
-
-      if( $message->command eq "001" ) {
-         $self->{on_login}->( $self ) if defined $self->{on_login};
-         $self->{state} = STATE_LOGGEDIN;
-         undef $self->{on_login};
-         # Don't eat it
-      }
-
-      if( $message->command eq "005" ) {
-         $self->_incoming_005( $message );
-      }
-
-      $self->{on_message}->( $self, $message );
       return 1;
    }
 
    return 0;
+}
+
+sub incoming_message
+{
+   my $self = shift;
+   my ( $message ) = @_;
+
+   my $prefix_is_me = $self->is_prefix_me( $message->prefix );
+
+   # TODO: These are getting messy...
+
+   if( $message->command eq "NICK" and $prefix_is_me ) {
+      $self->set_nick( $message->arg(0) );
+   }
+
+   # Handle PING directly
+   if( $message->command eq "PING" ) {
+      $self->send_message( "PONG", undef, $message->arg(0) );
+      return 1;
+   }
+
+   if( $message->command eq "PONG" ) {
+      # Protect against spurious PONGs from the server
+      return unless defined $self->{pongtimer_id};
+
+      my $lag = time() - $self->{ping_send_time};
+
+      $self->{current_lag} = $lag;
+      $self->{on_pong_reply}->( $self, $lag ) if $self->{on_pong_reply};
+
+      my $loop = $self->get_loop;
+
+      $loop->cancel_timer( $self->{pongtimer_id} );
+      undef $self->{pongtimer_id};
+
+      return 1;
+   }
+
+   if( $message->command eq "001" ) {
+      $self->{on_login}->( $self ) if defined $self->{on_login};
+      $self->{state} = STATE_LOGGEDIN;
+      undef $self->{on_login};
+      # Don't eat it
+   }
+
+   if( $message->command eq "005" ) {
+      $self->_incoming_005( $message );
+   }
+
+   $self->{on_message}->( $self, $message );
 }
 
 sub send_message
