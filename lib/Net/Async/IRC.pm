@@ -98,6 +98,9 @@ sub new
 
    $self->{isupport} = {};
 
+   # Some initial defaults for isupport-derived values
+   $self->{channame_re} = qr/^[#&]/;
+
    $self->set_nick( $args{nick} );
 
    $self->{user}     = $args{user} || $ENV{LOGNAME} || getpwuid($>);
@@ -331,6 +334,9 @@ sub on_message_005
          $self->{casemap_1459} = 1 if( lc $value eq "rfc1459" );
 
          $self->{nick_folded} = $self->casefold_name( $self->{nick} );
+      }
+      elsif( $name eq "CHANTYPES" ) {
+         $self->{channame_re} = qr/^[$value]/;
       }
    }
 
