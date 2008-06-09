@@ -30,6 +30,8 @@ my $irc = Net::Async::IRC->new(
    handle => $S1,
    on_message => sub { "IGNORE" },
 
+   nick => "DefaultNick",
+
    pingtime => 2,
    pongtime => 1,
 
