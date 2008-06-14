@@ -139,5 +139,67 @@ sub stream_to_line
    return $line;
 }
 
+# Targeting information
+
+# This hash holds the argument number for the 'target' of any message type
+
+my %TARGET_ARG;
+
+# Named commands
+$TARGET_ARG{$_} = 0 for qw(
+   INVITE JOIN KICK LIST MODE NAMES NOTICE PART PRIVMSG TOPIC WHO WHOIS WHOWAS
+);
+
+# Normal targeted numerics
+$TARGET_ARG{$_} = 1 for qw(
+   301
+   311 312 313 314 317 318 319 369
+   324 331 332 341
+   346 347 348 349 367 368
+   352 315
+   366
+   401 402 403 404 405 406 408
+   432 433 436 437
+   442 444
+   467 471 473 474 475 476 477 478
+   482
+);
+
+# 353 RPL_NAMREPLY is weird
+$TARGET_ARG{353} = 2;
+
+# 441 ERR_USERNOTINCHANNEL: <nick> <channel> so we'll target channel
+$TARGET_ARG{441} = 2;
+# 443 ERR_USERONCHANNEL: <nick> <channel> so we'll target channel
+$TARGET_ARG{443} = 2;
+
+# TODO: 472 ERR_UNKNOWNMODE: <char> :is unknown mode char to me for <channel>
+# How to parse this one??
+
+sub target_arg_index
+{
+   my $self = shift;
+
+   if( exists $TARGET_ARG{$self->{command}} ) {
+      return $TARGET_ARG{$self->{command}};
+   }
+   else {
+      return undef;
+   }
+}
+
+sub is_targeted
+{
+   my $self = shift;
+   return defined $self->target_arg_index;
+}
+
+sub target_arg
+{
+   my $self = shift;
+   my $index = $self->target_arg_index;
+   return defined $index ? $self->arg( $index ) : undef;
+}
+
 # Keep perl happy; keep Britain tidy
 1;
