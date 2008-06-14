@@ -248,9 +248,9 @@ sub incoming_message
       prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
    };
 
-   return if $self->_invoke( "on_message_$command", $message, $hints );
+   $self->_invoke( "on_message_$command", $message, $hints );
 
-   return if $self->_invoke( "on_message", $message, $hints );
+   $self->_invoke( "on_message", $message, $hints );
 }
 
 sub on_message_NICK
