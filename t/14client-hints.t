@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 18;
+use Test::More tests => 21;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 use IO::Async::Stream;
@@ -27,8 +27,9 @@ my $irc = Net::Async::IRC->new(
    on_message => sub {
       my ( $self, $command, $message, $hints ) = @_;
       # Only care about real events, not synthesized ones
-      return if $hints->{synthesized};
+      return 0 if $hints->{synthesized};
       push @messages, [ $command, $message, $hints ];
+      return $command ne "NOTICE";
    },
 );
 
@@ -71,7 +72,8 @@ is( $msg->prefix,  "irc.example.com", '$msg->prefix' );
 is_deeply( [ $msg->args ], [ "MyNick", "Welcome to IRC MyNick!me\@your.host" ], '$msg->args' );
 
 is_deeply( $hints, { prefix_nick  => undef,
-                     prefix_is_me => '' }, '$hints' );
+                     prefix_is_me => '',
+                     handled      => 1 }, '$hints' );
 
 $S2->syswrite( ':Someone!theiruser@their.host PRIVMSG MyNick :Their message here' . $CRLF );
 
@@ -86,7 +88,8 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      prefix_is_me => '',
                      target_name  => "MyNick",
                      target_is_me => 1,
-                     target_type  => "user" }, '$hints for PRIVMSG' );
+                     target_type  => "user",
+                     handled      => 1 }, '$hints for PRIVMSG' );
 
 $S2->syswrite( ':MyNick!me@your.host PRIVMSG MyNick :Hello to me' . $CRLF );
 
@@ -101,7 +104,8 @@ is_deeply( $hints, { prefix_nick  => "MyNick",
                      prefix_is_me => 1,
                      target_name  => "MyNick",
                      target_is_me => 1,
-                     target_type  => "user" }, '$hints for PRIVMSG to self' );
+                     target_type  => "user",
+                     handled      => 1 }, '$hints for PRIVMSG to self' );
 
 $S2->syswrite( ':Someone!theiruser@their.host TOPIC #channel :Message of the day' . $CRLF );
 
@@ -116,4 +120,21 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
                      target_is_me => '',
-                     target_type  => "channel" }, '$hints for TOPIC' );
+                     target_type  => "channel",
+                     handled      => 1 }, '$hints for TOPIC' );
+
+$S2->syswrite( ':Someone!theiruser@their.host NOTICE #channel :Please ignore me' . $CRLF );
+
+wait_for { @messages };
+
+( $command, $msg, $hints ) = @{ shift @messages };
+
+is( $msg->command, "NOTICE",                       '$msg->command for NOTICE' );
+is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for NOTICE' );
+
+is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_is_me => '',
+                     target_name  => "#channel",
+                     target_is_me => '',
+                     target_type  => "channel",
+                     handled      => 0 }, '$hints for NOTICE' );

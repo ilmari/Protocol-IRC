@@ -245,6 +245,7 @@ sub incoming_message
    my ( $prefix_nick ) = $self->split_prefix( $message->prefix );
 
    my $hints = {
+      handled => 0,
       prefix_nick  => $prefix_nick,
       prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
    };
@@ -256,9 +257,8 @@ sub incoming_message
       $hints->{target_type}  = ( $target_name =~ $self->{channame_re} ) ? "channel" : "user";
    }
 
-   $self->_invoke( "on_message_$command", $message, $hints );
-
-   $self->_invoke( "on_message", $command, $message, $hints );
+   $self->_invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
+   $self->_invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
 }
 
 sub on_message_NICK
@@ -357,18 +357,18 @@ sub _on_message_text
       $hints{ctcp_verb} = $verb;
       $hints{ctcp_args} = $text;
 
-      $self->_invoke( "on_message_ctcp_$verb", $message, \%hints );
-      $self->_invoke( "on_message_ctcp", $verb, $message, \%hints );
-      $self->_invoke( "on_message", "ctcp $verb", $message, \%hints );
+      $self->_invoke( "on_message_ctcp_$verb", $message, \%hints ) and $hints{handled} = 1;
+      $self->_invoke( "on_message_ctcp", $verb, $message, \%hints ) and $hints{handled} = 1;
+      $self->_invoke( "on_message", "ctcp $verb", $message, \%hints ) and $hints{handled} = 1;
    }
    else {
       $hints{text} = $text;
 
-      $self->_invoke( "on_message_text", $message, \%hints );
-      $self->_invoke( "on_message", "text", $message, \%hints );
+      $self->_invoke( "on_message_text", $message, \%hints ) and $hints{handled} = 1;
+      $self->_invoke( "on_message", "text", $message, \%hints ) and $hints{handled} = 1;
    }
 
-   return 1;
+   return $hints{handled};
 }
 
 sub on_message_001

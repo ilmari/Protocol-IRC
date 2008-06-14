@@ -29,6 +29,7 @@ my $irc = Net::Async::IRC->new(
    on_message => sub {
       my ( $self, $command, $message, $hints ) = @_;
       $messages{$command} = [ $message, $hints ];
+      return 1;
    },
 );
 
@@ -75,7 +76,8 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      prefix_is_me => '',
                      target_name  => "MyNick",
                      target_is_me => 1,
-                     target_type  => "user" }, '$hints[PRIVMSG] for PRIVMSG' );
+                     target_type  => "user",
+                     handled      => 1 }, '$hints[PRIVMSG] for PRIVMSG' );
 
 ( $msg, $hints ) = @{ $messages{text} };
 
@@ -89,7 +91,8 @@ is_deeply( $hints, { synthesized  => 1,
                      target_is_me => 1,
                      target_type  => "user",
                      is_notice    => 0,
-                     text         => "Their message here" }, '$hints[text] for PRIVMSG' );
+                     text         => "Their message here",
+                     handled      => 1 }, '$hints[text] for PRIVMSG' );
 
 undef %messages;
 
@@ -108,7 +111,8 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
                      target_is_me => '',
-                     target_type  => "channel" }, '$hints[PRIVMSG] for PRIVMSG to channel' );
+                     target_type  => "channel",
+                     handled      => 1 }, '$hints[PRIVMSG] for PRIVMSG to channel' );
 
 ( $msg, $hints ) = @{ $messages{text} };
 
@@ -123,7 +127,8 @@ is_deeply( $hints, { synthesized  => 1,
                      target_type  => "channel",
                      is_notice    => 0,
                      restriction  => '',
-                     text         => "Message to all" }, '$hints[text] for PRIVMSG to channel' );
+                     text         => "Message to all",
+                     handled      => 1 }, '$hints[text] for PRIVMSG to channel' );
 
 undef %messages;
 
@@ -142,7 +147,8 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
                      target_is_me => '',
-                     target_type  => "channel" }, '$hints[NOTICE] for NOTICE to channel' );
+                     target_type  => "channel",
+                     handled      => 1 }, '$hints[NOTICE] for NOTICE to channel' );
 
 ( $msg, $hints ) = @{ $messages{text} };
 
@@ -157,7 +163,8 @@ is_deeply( $hints, { synthesized  => 1,
                      target_type  => "channel",
                      is_notice    => 1,
                      restriction  => '',
-                     text         => "Is anyone listening?" }, '$hints[text] for NOTICE to channel' );
+                     text         => "Is anyone listening?",
+                     handled      => 1 }, '$hints[text] for NOTICE to channel' );
 
 undef %messages;
 
@@ -176,7 +183,8 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      prefix_is_me => '',
                      target_name  => "@#channel",
                      target_is_me => '',
-                     target_type  => "user" }, '$hints[PRIVMSG] for PRIVMSG to channel ops' );
+                     target_type  => "user",
+                     handled      => 1 }, '$hints[PRIVMSG] for PRIVMSG to channel ops' );
 
 ( $msg, $hints ) = @{ $messages{text} };
 
@@ -191,7 +199,8 @@ is_deeply( $hints, { synthesized  => 1,
                      target_type  => "channel",
                      is_notice    => 0,
                      restriction  => '@',
-                     text         => "To only the important people" }, '$hints[text] for PRIVMSG to channel ops' );
+                     text         => "To only the important people",
+                     handled      => 1 }, '$hints[text] for PRIVMSG to channel ops' );
 
 undef %messages;
 
@@ -210,7 +219,8 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      prefix_is_me => '',
                      target_name  => "MyNick",
                      target_is_me => 1,
-                     target_type  => "user" }, '$hints[PRIVMSG] for CTCP ACTION' );
+                     target_type  => "user",
+                     handled      => 1 }, '$hints[PRIVMSG] for CTCP ACTION' );
 
 ( $msg, $hints ) = @{ $messages{"ctcp ACTION"} };
 
@@ -225,4 +235,5 @@ is_deeply( $hints, { synthesized  => 1,
                      target_type  => "user",
                      is_notice    => 0,
                      ctcp_verb    => "ACTION",
-                     ctcp_args    => "does something" }, '$hints[ctcp] for CTCP ACTION' );
+                     ctcp_args    => "does something",
+                     handled      => 1 }, '$hints[ctcp] for CTCP ACTION' );
