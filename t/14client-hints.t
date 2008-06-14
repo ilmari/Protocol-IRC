@@ -26,6 +26,8 @@ my $irc = Net::Async::IRC->new(
    handle => $S1,
    on_message => sub {
       my ( $self, $command, $message, $hints ) = @_;
+      # Only care about real events, not synthesized ones
+      return if $hints->{synthesized};
       push @messages, [ $command, $message, $hints ];
    },
 );

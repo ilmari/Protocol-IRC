@@ -274,6 +274,13 @@ sub on_message_NICK
    return 0;
 }
 
+sub on_message_NOTICE
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   return $self->_on_message_text( $message, $hints, 1 );
+}
+
 sub on_message_PING
 {
    my $self = shift;
@@ -300,6 +307,65 @@ sub on_message_PONG
 
    $loop->cancel_timer( $self->{pongtimer_id} );
    undef $self->{pongtimer_id};
+
+   return 1;
+}
+
+sub on_message_PRIVMSG
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   return $self->_on_message_text( $message, $hints, 0 );
+}
+
+sub _on_message_text
+{
+   my $self = shift;
+   my ( $message, $hints, $is_notice ) = @_;
+
+   my %hints = (
+      %$hints,
+      synthesized => 1,
+      is_notice => $is_notice,
+   );
+
+   my $target = $message->arg(0);
+   my $text   = $message->arg(1);
+
+   my $command;
+
+   if( $text =~ m/^\x01(.*)\x01$/ ) {
+      ( my $verb, $text ) = split( m/ /, $1, 2 );
+      $hints{ctcp_verb} = $verb;
+      $hints{ctcp_args} = $text;
+      $command = "ctcp";
+   }
+   else {
+      $hints{text} = $text;
+      $command = "text";
+   }
+
+   my $restriction = "";
+   while( $target =~ $self->{prefixmode_re} ) {
+      $restriction .= substr( $target, 0, 1, "" );
+   }
+
+   $hints{target_name} = $target;
+
+   if( $target =~ $self->{channame_re} ) {
+      $hints{restriction} = $restriction;
+      $hints{target_type} = "channel";
+      $hints{target_is_me} = '';
+   }
+   else {
+      # TODO: user messages probably can't have restrictions. What to do
+      # if we got one?
+      $hints{target_type} = "user";
+      $hints{target_is_me} = $self->is_nick_me( $target );
+   }
+
+   $self->_invoke( "on_message_$command", $message, \%hints );
+   $self->_invoke( "on_message", $command, $message, \%hints );
 
    return 1;
 }
