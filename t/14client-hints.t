@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 33;
+use Test::More tests => 18;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 use IO::Async::Stream;
@@ -68,10 +68,8 @@ is( $msg->command, "001",             '$msg->command' );
 is( $msg->prefix,  "irc.example.com", '$msg->prefix' );
 is_deeply( [ $msg->args ], [ "MyNick", "Welcome to IRC MyNick!me\@your.host" ], '$msg->args' );
 
-is( $hints->{prefix_nick}, undef, '$hints->{prefix_nick} is not defined' );
-ok( !$hints->{prefix_is_me},      '$hints->{prefix_is_me} is false' );
-is( $hints->{target_name}, undef, '$hints->{target_name} is not defined' );
-ok( !$hints->{target_is_me},      '$hints->{target_is_me} is false' );
+is_deeply( $hints, { prefix_nick  => undef,
+                     prefix_is_me => '' }, '$hints' );
 
 $S2->syswrite( ':Someone!theiruser@their.host PRIVMSG MyNick :Their message here' . $CRLF );
 
@@ -82,11 +80,11 @@ wait_for { @messages };
 is( $msg->command, "PRIVMSG",                      '$msg->command for PRIVMSG' );
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for PRIVMSG' );
 
-is( $hints->{prefix_nick}, "Someone", '$hints->{prefix_nick} for PRIVMSG' );
-ok( !$hints->{prefix_is_me},          '$hints->{prefix_is_me} for PRIVMSG' );
-is( $hints->{target_name}, "MyNick",  '$hints->{target_name} for PRIVMSG' );
-ok( $hints->{target_is_me},           '$hints->{target_is_me} for PRIVMSG' );
-is( $hints->{target_type}, "user",    '$hints->{target_type} for PRIVMSG' );
+is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_is_me => '',
+                     target_name  => "MyNick",
+                     target_is_me => 1,
+                     target_type  => "user" }, '$hints for PRIVMSG' );
 
 $S2->syswrite( ':MyNick!me@your.host PRIVMSG MyNick :Hello to me' . $CRLF );
 
@@ -97,11 +95,11 @@ wait_for { @messages };
 is( $msg->command, "PRIVMSG",             '$msg->command for PRIVMSG to self' );
 is( $msg->prefix,  'MyNick!me@your.host', '$msg->prefix for PRIVMSG to self' );
 
-is( $hints->{prefix_nick}, "MyNick", '$hints->{prefix_nick} for PRIVMSG to self' );
-ok( $hints->{prefix_is_me},          '$hints->{prefix_is_me} for PRIVMSG to self' );
-is( $hints->{target_name}, "MyNick", '$hints->{target_name} for PRIVMSG to self' );
-ok( $hints->{target_is_me},          '$hints->{target_is_me} for PRIVMSG to self' );
-is( $hints->{target_type}, "user",    '$hints->{target_type} for PRIVMSG to self' );
+is_deeply( $hints, { prefix_nick  => "MyNick",
+                     prefix_is_me => 1,
+                     target_name  => "MyNick",
+                     target_is_me => 1,
+                     target_type  => "user" }, '$hints for PRIVMSG to self' );
 
 $S2->syswrite( ':Someone!theiruser@their.host TOPIC #channel :Message of the day' . $CRLF );
 
@@ -112,8 +110,8 @@ wait_for { @messages };
 is( $msg->command, "TOPIC",                        '$msg->command for TOPIC' );
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for TOPIC' );
 
-is( $hints->{prefix_nick}, "Someone",  '$hints->{prefix_nick} for TOPIC' );
-ok( !$hints->{prefix_is_me},           '$hints->{prefix_is_me} for TOPIC' );
-is( $hints->{target_name}, "#channel", '$hints->{target_name} for TOPIC' );
-ok( !$hints->{target_is_me},           '$hints->{target_is_me} for TOPIC' );
-is( $hints->{target_type}, "channel",  '$hints->{target_type} for TOPIC' );
+is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_is_me => '',
+                     target_name  => "#channel",
+                     target_is_me => '',
+                     target_type  => "channel" }, '$hints for TOPIC' );
