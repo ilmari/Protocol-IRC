@@ -81,7 +81,7 @@ is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for PRIVMSG' );
 is( $hints->{prefix_nick}, "Someone", '$hints->{prefix_nick} for PRIVMSG' );
 ok( !$hints->{prefix_is_me},          '$hints->{prefix_is_me} for PRIVMSG' );
 
-$S2->syswrite( ':MyNick!me@your.host PRIVMSG :Hello to me' . $CRLF );
+$S2->syswrite( ':MyNick!me@your.host PRIVMSG MyNick :Hello to me' . $CRLF );
 
 wait_for { @messages };
 
