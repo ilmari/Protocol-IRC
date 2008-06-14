@@ -248,6 +248,13 @@ sub incoming_message
       prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
    };
 
+   my $target_name = $message->target_arg;
+   if( defined $target_name ) {
+      $hints->{target_name}  = $target_name;
+      $hints->{target_is_me} = $self->is_nick_me( $target_name );
+      $hints->{target_type}  = ( $target_name =~ $self->{channame_re} ) ? "channel" : "user";
+   }
+
    $self->_invoke( "on_message_$command", $message, $hints );
 
    $self->_invoke( "on_message", $message, $hints );

@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 17;
+use Test::More tests => 32;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 use IO::Async::Stream;
@@ -68,6 +68,8 @@ is_deeply( [ $msg->args ], [ "MyNick", "Welcome to IRC MyNick!me\@your.host" ], 
 
 is( $hints->{prefix_nick}, undef, '$hints->{prefix_nick} is not defined' );
 ok( !$hints->{prefix_is_me},      '$hints->{prefix_is_me} is false' );
+is( $hints->{target_name}, undef, '$hints->{target_name} is not defined' );
+ok( !$hints->{target_is_me},      '$hints->{target_is_me} is false' );
 
 $S2->syswrite( ':Someone!theiruser@their.host PRIVMSG MyNick :Their message here' . $CRLF );
 
@@ -80,6 +82,9 @@ is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for PRIVMSG' );
 
 is( $hints->{prefix_nick}, "Someone", '$hints->{prefix_nick} for PRIVMSG' );
 ok( !$hints->{prefix_is_me},          '$hints->{prefix_is_me} for PRIVMSG' );
+is( $hints->{target_name}, "MyNick",  '$hints->{target_name} for PRIVMSG' );
+ok( $hints->{target_is_me},           '$hints->{target_is_me} for PRIVMSG' );
+is( $hints->{target_type}, "user",    '$hints->{target_type} for PRIVMSG' );
 
 $S2->syswrite( ':MyNick!me@your.host PRIVMSG MyNick :Hello to me' . $CRLF );
 
@@ -92,3 +97,21 @@ is( $msg->prefix,  'MyNick!me@your.host', '$msg->prefix for PRIVMSG to self' );
 
 is( $hints->{prefix_nick}, "MyNick", '$hints->{prefix_nick} for PRIVMSG to self' );
 ok( $hints->{prefix_is_me},          '$hints->{prefix_is_me} for PRIVMSG to self' );
+is( $hints->{target_name}, "MyNick", '$hints->{target_name} for PRIVMSG to self' );
+ok( $hints->{target_is_me},          '$hints->{target_is_me} for PRIVMSG to self' );
+is( $hints->{target_type}, "user",    '$hints->{target_type} for PRIVMSG to self' );
+
+$S2->syswrite( ':Someone!theiruser@their.host TOPIC #channel :Message of the day' . $CRLF );
+
+wait_for { @messages };
+
+( $msg, $hints ) = @{ shift @messages };
+
+is( $msg->command, "TOPIC",                        '$msg->command for TOPIC' );
+is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for TOPIC' );
+
+is( $hints->{prefix_nick}, "Someone",  '$hints->{prefix_nick} for TOPIC' );
+ok( !$hints->{prefix_is_me},           '$hints->{prefix_is_me} for TOPIC' );
+is( $hints->{target_name}, "#channel", '$hints->{target_name} for TOPIC' );
+ok( !$hints->{target_is_me},           '$hints->{target_is_me} for TOPIC' );
+is( $hints->{target_type}, "channel",  '$hints->{target_type} for TOPIC' );
