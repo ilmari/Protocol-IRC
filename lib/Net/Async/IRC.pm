@@ -357,8 +357,9 @@ sub _on_message_text
       $hints{ctcp_verb} = $verb;
       $hints{ctcp_args} = $text;
 
-      $self->_invoke( "on_message_ctcp", $message, \%hints );
-      $self->_invoke( "on_message", "ctcp", $message, \%hints );
+      $self->_invoke( "on_message_ctcp_$verb", $message, \%hints );
+      $self->_invoke( "on_message_ctcp", $verb, $message, \%hints );
+      $self->_invoke( "on_message", "ctcp $verb", $message, \%hints );
    }
    else {
       $hints{text} = $text;

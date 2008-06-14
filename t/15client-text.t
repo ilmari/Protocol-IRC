@@ -199,7 +199,7 @@ $S2->syswrite( ":Someone!theiruser\@their.host PRIVMSG MyNick :\001ACTION does s
 
 wait_for { keys %messages == 2 };
 
-is_deeply( [ sort keys %messages ], [qw( PRIVMSG ctcp )], 'keys %messages for CTCP ACTION' );
+is_deeply( [ sort keys %messages ], ["PRIVMSG", "ctcp ACTION"], 'keys %messages for CTCP ACTION' );
 
 ( $msg, $hints ) = @{ $messages{PRIVMSG} };
 
@@ -212,7 +212,7 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_is_me => 1,
                      target_type  => "user" }, '$hints[PRIVMSG] for CTCP ACTION' );
 
-( $msg, $hints ) = @{ $messages{ctcp} };
+( $msg, $hints ) = @{ $messages{"ctcp ACTION"} };
 
 is( $msg->command, "PRIVMSG",                      '$msg[ctcp]->command for CTCP ACTION' );
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[ctcp]->prefix for CTCP ACTION' );
