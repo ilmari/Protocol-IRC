@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 8;
+use Test::More tests => 9;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 use IO::Async::Stream;
@@ -25,8 +25,8 @@ my @messages;
 my $irc = Net::Async::IRC->new(
    handle => $S1,
    on_message => sub {
-      my ( $self, $message ) = @_;
-      push @messages, $message;
+      my ( $self, $message, $hints ) = @_;
+      push @messages, [ $message, $hints ];
    },
 );
 
@@ -46,14 +46,19 @@ $S2->syswrite( ':irc.example.com 001 YourNameHere :Welcome to IRC YourNameHere!m
 
 wait_for { @messages > 0 };
 
-my $msg = shift @messages;
+my $m = shift @messages;
 
-ok( defined $msg, '$msg defined after server reply' );
+ok( defined $m, '$m defined after server reply' );
+
+my ( $msg, $hints ) = @$m;
+
 ok( $msg->isa( "Net::Async::IRC::Message" ), '$msg isa Net::Async::IRC::Message' );
 
 is( $msg->command, "001",             '$msg->command' );
 is( $msg->prefix,  "irc.example.com", '$msg->prefix' );
 is_deeply( [ $msg->args ], [ "YourNameHere", "Welcome to IRC YourNameHere!me\@your.host" ], '$msg->args' );
+
+is( $hints->{prefix_nick}, undef, '$hints->{prefix_nick} is not defined' );
 
 $S2->syswrite( ":irc.example.com PING pingarg$CRLF" );
 

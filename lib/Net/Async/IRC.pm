@@ -241,23 +241,29 @@ sub incoming_message
 
    my $command = $message->command;
 
-   my $prefix_is_me = $self->is_prefix_me( $message->prefix );
+   my ( $prefix_nick ) = $self->split_prefix( $message->prefix );
 
-   return if $prefix_is_me and $self->_invoke( "on_message_self_$command", $message );
+   my $hints = {
+      prefix_nick  => $prefix_nick,
+      prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
+   };
 
-   return if $self->_invoke( "on_message_$command", $message );
+   return if $self->_invoke( "on_message_$command", $message, $hints );
 
-   return if $self->_invoke( "on_message", $message );
+   return if $self->_invoke( "on_message", $message, $hints );
 }
 
-sub on_message_self_NICK
+sub on_message_NICK
 {
    my $self = shift;
-   my ( $message ) = @_;
+   my ( $message, $hints ) = @_;
 
-   $self->set_nick( $message->arg(0) );
+   if( $hints->{prefix_is_me} ) {
+      $self->set_nick( $message->arg(0) );
+      return 1;
+   }
 
-   return 1;
+   return 0;
 }
 
 sub on_message_PING

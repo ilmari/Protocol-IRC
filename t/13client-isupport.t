@@ -20,14 +20,9 @@ testing_loop( $loop );
 ( my $S1, my $S2 ) = IO::Socket::UNIX->socketpair( AF_UNIX, SOCK_STREAM, PF_UNSPEC ) or
    die "Cannot create socket pair - $!";
 
-my @messages;
-
 my $irc = Net::Async::IRC->new(
    handle => $S1,
-   on_message => sub {
-      my ( $self, $message ) = @_;
-      push @messages, $message;
-   },
+   on_message => sub { "IGNORE" },
 );
 
 ok( defined $irc, 'defined $irc' );
