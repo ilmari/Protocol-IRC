@@ -97,6 +97,7 @@ sub new
 
    # Some initial defaults for isupport-derived values
    $self->{channame_re} = qr/^[#&]/;
+   $self->{prefixmode_re} = qr/^[@+]/;
 
    $self->set_nick( $args{nick} );
 
@@ -339,6 +340,8 @@ sub on_message_005
 
          $self->{isupport}->{PREFIX_MODES} = $prefix_modes;
          $self->{isupport}->{PREFIX_FLAGS} = $prefix_flags;
+
+         $self->{prefixmode_re} = qr/^[$prefix_modes]/;
 
          my %prefix_map;
          $prefix_map{substr $prefix_modes, $_, 1} = substr $prefix_flags, $_, 1 for ( 0 .. length($prefix_modes) - 1 );
