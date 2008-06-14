@@ -330,20 +330,6 @@ sub _on_message_text
    );
 
    my $target = $message->arg(0);
-   my $text   = $message->arg(1);
-
-   my $command;
-
-   if( $text =~ m/^\x01(.*)\x01$/ ) {
-      ( my $verb, $text ) = split( m/ /, $1, 2 );
-      $hints{ctcp_verb} = $verb;
-      $hints{ctcp_args} = $text;
-      $command = "ctcp";
-   }
-   else {
-      $hints{text} = $text;
-      $command = "text";
-   }
 
    my $restriction = "";
    while( $target =~ $self->{prefixmode_re} ) {
@@ -364,8 +350,22 @@ sub _on_message_text
       $hints{target_is_me} = $self->is_nick_me( $target );
    }
 
-   $self->_invoke( "on_message_$command", $message, \%hints );
-   $self->_invoke( "on_message", $command, $message, \%hints );
+   my $text   = $message->arg(1);
+
+   if( $text =~ m/^\x01(.*)\x01$/ ) {
+      ( my $verb, $text ) = split( m/ /, $1, 2 );
+      $hints{ctcp_verb} = $verb;
+      $hints{ctcp_args} = $text;
+
+      $self->_invoke( "on_message_ctcp", $message, \%hints );
+      $self->_invoke( "on_message", "ctcp", $message, \%hints );
+   }
+   else {
+      $hints{text} = $text;
+
+      $self->_invoke( "on_message_text", $message, \%hints );
+      $self->_invoke( "on_message", "text", $message, \%hints );
+   }
 
    return 1;
 }
