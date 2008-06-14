@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 32;
+use Test::More tests => 33;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 use IO::Async::Stream;
@@ -25,8 +25,8 @@ my @messages;
 my $irc = Net::Async::IRC->new(
    handle => $S1,
    on_message => sub {
-      my ( $self, $message, $hints ) = @_;
-      push @messages, [ $message, $hints ];
+      my ( $self, $command, $message, $hints ) = @_;
+      push @messages, [ $command, $message, $hints ];
    },
 );
 
@@ -58,7 +58,9 @@ my $m = shift @messages;
 
 ok( defined $m, '$m defined after server reply' );
 
-my ( $msg, $hints ) = @$m;
+my ( $command, $msg, $hints ) = @$m;
+
+is( $command, "001", '$command' );
 
 ok( $msg->isa( "Net::Async::IRC::Message" ), '$msg isa Net::Async::IRC::Message' );
 
@@ -75,7 +77,7 @@ $S2->syswrite( ':Someone!theiruser@their.host PRIVMSG MyNick :Their message here
 
 wait_for { @messages };
 
-( $msg, $hints ) = @{ shift @messages };
+( $command, $msg, $hints ) = @{ shift @messages };
 
 is( $msg->command, "PRIVMSG",                      '$msg->command for PRIVMSG' );
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for PRIVMSG' );
@@ -90,7 +92,7 @@ $S2->syswrite( ':MyNick!me@your.host PRIVMSG MyNick :Hello to me' . $CRLF );
 
 wait_for { @messages };
 
-( $msg, $hints ) = @{ shift @messages };
+( $command, $msg, $hints ) = @{ shift @messages };
 
 is( $msg->command, "PRIVMSG",             '$msg->command for PRIVMSG to self' );
 is( $msg->prefix,  'MyNick!me@your.host', '$msg->prefix for PRIVMSG to self' );
@@ -105,7 +107,7 @@ $S2->syswrite( ':Someone!theiruser@their.host TOPIC #channel :Message of the day
 
 wait_for { @messages };
 
-( $msg, $hints ) = @{ shift @messages };
+( $command, $msg, $hints ) = @{ shift @messages };
 
 is( $msg->command, "TOPIC",                        '$msg->command for TOPIC' );
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for TOPIC' );

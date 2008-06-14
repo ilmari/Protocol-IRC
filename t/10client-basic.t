@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 9;
+use Test::More tests => 10;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 use IO::Async::Stream;
@@ -25,8 +25,8 @@ my @messages;
 my $irc = Net::Async::IRC->new(
    handle => $S1,
    on_message => sub {
-      my ( $self, $message, $hints ) = @_;
-      push @messages, [ $message, $hints ];
+      my ( $self, $command, $message, $hints ) = @_;
+      push @messages, [ $command, $message, $hints ];
    },
 );
 
@@ -50,7 +50,9 @@ my $m = shift @messages;
 
 ok( defined $m, '$m defined after server reply' );
 
-my ( $msg, $hints ) = @$m;
+my ( $command, $msg, $hints ) = @$m;
+
+is( $command, "001", '$command' );
 
 ok( $msg->isa( "Net::Async::IRC::Message" ), '$msg isa Net::Async::IRC::Message' );
 

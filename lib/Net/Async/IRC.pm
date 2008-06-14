@@ -257,7 +257,7 @@ sub incoming_message
 
    $self->_invoke( "on_message_$command", $message, $hints );
 
-   $self->_invoke( "on_message", $message, $hints );
+   $self->_invoke( "on_message", $command, $message, $hints );
 }
 
 sub on_message_NICK
