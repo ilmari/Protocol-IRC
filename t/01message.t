@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 36;
+use Test::More tests => 40;
 use Test::Exception;
 
 use Net::Async::IRC::Message;
@@ -82,6 +82,13 @@ test_line "With long final",
    prefix  => "",
    args    => [ "Here is a long message to say" ],
    stream  => "MESSAGE :Here is a long message to say";
+
+test_line "With :final",
+   "MESSAGE ::final",
+   command => "MESSAGE",
+   prefix  => "",
+   args    => [ ":final" ],
+   stream  => "MESSAGE ::final";
 
 throws_ok( sub { Net::Async::IRC::Message->new( "some command" ) },
            qr/^Command must be just letters or three digits/,

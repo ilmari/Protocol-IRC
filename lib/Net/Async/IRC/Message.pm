@@ -127,12 +127,12 @@ sub stream_to_line
 
    $line .= $self->{command};
 
-   foreach my $a ( @{$self->{args}} ) {
-      if( $a =~ m/ / ) {
-         $line .= " :$a";
+   foreach ( @{$self->{args}} ) {
+      if( m/ / or m/^:/  ) {
+         $line .= " :$_";
       }
       else {
-         $line .= " $a";
+         $line .= " $_";
       }
    }
 
