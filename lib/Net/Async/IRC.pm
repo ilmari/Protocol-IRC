@@ -97,7 +97,7 @@ sub new
 
    # Some initial defaults for isupport-derived values
    $self->{channame_re} = qr/^[#&]/;
-   $self->{prefixmode_re} = qr/^[@+]/;
+   $self->{prefixmode_re} = qr/^[\@+]/;
 
    $self->set_nick( $args{nick} );
 
