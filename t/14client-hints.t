@@ -72,6 +72,7 @@ is( $msg->prefix,  "irc.example.com", '$msg->prefix' );
 is_deeply( [ $msg->args ], [ "MyNick", "Welcome to IRC MyNick!me\@your.host" ], '$msg->args' );
 
 is_deeply( $hints, { prefix_nick  => undef,
+                     prefix_nick_folded => undef,
                      prefix_is_me => '',
                      handled      => 1 }, '$hints' );
 
@@ -85,8 +86,10 @@ is( $msg->command, "PRIVMSG",                      '$msg->command for PRIVMSG' )
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for PRIVMSG' );
 
 is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "MyNick",
+                     target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
                      handled      => 1 }, '$hints for PRIVMSG' );
@@ -101,8 +104,10 @@ is( $msg->command, "PRIVMSG",             '$msg->command for PRIVMSG to self' );
 is( $msg->prefix,  'MyNick!me@your.host', '$msg->prefix for PRIVMSG to self' );
 
 is_deeply( $hints, { prefix_nick  => "MyNick",
+                     prefix_nick_folded => "mynick",
                      prefix_is_me => 1,
                      target_name  => "MyNick",
+                     target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
                      handled      => 1 }, '$hints for PRIVMSG to self' );
@@ -117,8 +122,10 @@ is( $msg->command, "TOPIC",                        '$msg->command for TOPIC' );
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for TOPIC' );
 
 is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
+                     target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
                      handled      => 1 }, '$hints for TOPIC' );
@@ -133,8 +140,10 @@ is( $msg->command, "NOTICE",                       '$msg->command for NOTICE' );
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for NOTICE' );
 
 is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
+                     target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
                      handled      => 0 }, '$hints for NOTICE' );

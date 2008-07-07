@@ -246,13 +246,16 @@ sub incoming_message
 
    my $hints = {
       handled => 0,
-      prefix_nick  => $prefix_nick,
-      prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
+
+      prefix_nick        => $prefix_nick,
+      prefix_nick_folded => $self->casefold_name( $prefix_nick ),
+      prefix_is_me       => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
    };
 
    my $target_name = $message->target_arg;
    if( defined $target_name ) {
       $hints->{target_name}  = $target_name;
+      $hints->{target_name_folded} = $self->casefold_name( $target_name );
       $hints->{target_is_me} = $self->is_nick_me( $target_name );
       $hints->{target_type}  = ( $target_name =~ $self->{channame_re} ) ? "channel" : "user";
    }
@@ -337,6 +340,7 @@ sub _on_message_text
    }
 
    $hints{target_name} = $target;
+   $hints{target_name_folded} = $self->casefold_name( $target );
 
    if( $target =~ $self->{channame_re} ) {
       $hints{restriction} = $restriction;
@@ -581,6 +585,8 @@ sub casefold_name
 {
    my $self = shift;
    my ( $nick ) = @_;
+
+   return undef unless defined $nick;
 
    # Squash the 'capital' [\] into lowercase {|}
    $nick =~ tr/[\\]/{|}/ if $self->{casemap_1459};

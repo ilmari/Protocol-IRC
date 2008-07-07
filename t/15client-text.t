@@ -73,8 +73,10 @@ is( $msg->command, "PRIVMSG",                      '$msg[PRIVMSG]->command for P
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[PRIVMSG]->prefix for PRIVMSG' );
 
 is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "MyNick",
+                     target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
                      handled      => 1 }, '$hints[PRIVMSG] for PRIVMSG' );
@@ -86,8 +88,10 @@ is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[text]->prefix for PRIVM
 
 is_deeply( $hints, { synthesized  => 1,
                      prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "MyNick",
+                     target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
                      is_notice    => 0,
@@ -108,8 +112,10 @@ is( $msg->command, "PRIVMSG",                      '$msg[PRIVMSG]->command for P
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[PRIVMSG]->prefix for PRIVMSG to channel' );
 
 is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
+                     target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
                      handled      => 1 }, '$hints[PRIVMSG] for PRIVMSG to channel' );
@@ -121,8 +127,10 @@ is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[text]->prefix for PRIVM
 
 is_deeply( $hints, { synthesized  => 1,
                      prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
+                     target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
                      is_notice    => 0,
@@ -144,8 +152,10 @@ is( $msg->command, "NOTICE",                      '$msg[NOTICE]->command for NOT
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[NOTICE]->prefix for NOTICE to channel' );
 
 is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
+                     target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
                      handled      => 1 }, '$hints[NOTICE] for NOTICE to channel' );
@@ -157,8 +167,10 @@ is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[text]->prefix for NOTIC
 
 is_deeply( $hints, { synthesized  => 1,
                      prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
+                     target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
                      is_notice    => 1,
@@ -180,8 +192,10 @@ is( $msg->command, "PRIVMSG",                      '$msg[PRIVMSG]->command for P
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[PRIVMSG]->prefix for PRIVMSG to channel ops' );
 
 is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "@#channel",
+                     target_name_folded => "@#channel",
                      target_is_me => '',
                      target_type  => "user",
                      handled      => 1 }, '$hints[PRIVMSG] for PRIVMSG to channel ops' );
@@ -193,8 +207,10 @@ is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[text]->prefix for PRIVM
 
 is_deeply( $hints, { synthesized  => 1,
                      prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "#channel",
+                     target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
                      is_notice    => 0,
@@ -216,8 +232,10 @@ is( $msg->command, "PRIVMSG",                      '$msg[PRIVMSG]->command for C
 is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[PRIVMSG]->prefix for CTCP ACTION' );
 
 is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "MyNick",
+                     target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
                      handled      => 1 }, '$hints[PRIVMSG] for CTCP ACTION' );
@@ -229,8 +247,10 @@ is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[ctcp]->prefix for CTCP 
 
 is_deeply( $hints, { synthesized  => 1,
                      prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
                      prefix_is_me => '',
                      target_name  => "MyNick",
+                     target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
                      is_notice    => 0,
