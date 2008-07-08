@@ -98,6 +98,7 @@ sub new
    # Some initial defaults for isupport-derived values
    $self->{channame_re} = qr/^[#&]/;
    $self->{prefixmode_re} = qr/^[\@+]/;
+   $self->{isupport}->{CHANMODES_LIST} = [qw( b k l imnpst )]; # TODO: ov
 
    $self->set_nick( $args{nick} );
 

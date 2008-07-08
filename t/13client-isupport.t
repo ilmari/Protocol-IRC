@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 22;
+use Test::More tests => 24;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 use IO::Async::Stream;
@@ -43,7 +43,7 @@ wait_for_stream { $serverstream =~ m/$CRLF.*$CRLF/ } $S2 => $serverstream;
 
 $S2->syswrite( ':irc.example.com 001 YourNameHere :Welcome to IRC YourNameHere!me@your.host' . $CRLF );
 
-$S2->syswrite( ':irc.example.com 005 YourNameHere NAMESX MAXCHANNELS=10 NICKLEN=30 PREFIX=(ohv)@%+ CASEMAPPING=rfc1459 :are supported by this server' . $CRLF );
+$S2->syswrite( ':irc.example.com 005 YourNameHere NAMESX MAXCHANNELS=10 NICKLEN=30 PREFIX=(ohv)@%+ CASEMAPPING=rfc1459 CHANMODES=beI,k,l,imnpsta :are supported by this server' . $CRLF );
 
 wait_for { defined $irc->isupport( "NAMESX" ) };
 
@@ -52,6 +52,8 @@ is( $irc->isupport( "NAMESX" ), 1, 'ISUPPORT NAMESX is true' );
 is( $irc->isupport( "MAXCHANNELS" ), "10", 'ISUPPORT MAXCHANNELS is 10' );
 
 is( $irc->isupport( "PREFIX" ), "(ohv)\@\%+", 'ISUPPORT PREFIX is (ohv)@%+' );
+
+is( $irc->isupport( "CHANMODES" ), "beI,k,l,imnpsta", 'ISUPPORT CHANMODES is beI,k,l,imnpsta' );
 
 # Now the generated ones from PREFIX
 is( $irc->isupport( "PREFIX_MODES" ), "ohv", 'ISUPPORT PREFIX_MODES is ohv' );
@@ -88,3 +90,6 @@ wait_for { $irc->isupport( "CASEMAPPING" ) eq "ascii" };
 ## END CHEATING
 
 is( $irc->casefold_name( "FOO[AWAY]" ), "foo[away]", 'casefold_name FOO[AWAY] under ascii' );
+
+# Now the generated ones from CHANMODES
+is_deeply( $irc->isupport( "CHANMODES_LIST" ), [qw( beI k l imnpsta )], 'ISUPPORT CHANMODES_LIST is [qw( beI k l imnpsta )]' );
