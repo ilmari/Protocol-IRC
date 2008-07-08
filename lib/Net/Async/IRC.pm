@@ -424,7 +424,8 @@ sub on_message_005
          $self->{isupport}->{CHANMODES_LIST} = [ split( m/,/, $value ) ];
       }
       elsif( $name eq "CASEMAPPING" ) {
-         $self->{casemap_1459} = 1 if( lc $value eq "rfc1459" );
+         $self->{casemap_1459} = ( lc $value ne "ascii" ); # RFC 1459 unless we're told not
+         $self->{casemap_1459_strict} = ( lc $value eq "strict-rfc1459" );
 
          $self->{nick_folded} = $self->casefold_name( $self->{nick} );
       }
@@ -590,6 +591,10 @@ sub casefold_name
 
    # Squash the 'capital' [\] into lowercase {|}
    $nick =~ tr/[\\]/{|}/ if $self->{casemap_1459};
+
+   # Most RFC 1459 implementations also squash ^ to ~, even though the RFC
+   # didn't mention it
+   $nick =~ tr/^/~/ unless $self->{casemap_1459_strict};
 
    return lc $nick;
 }

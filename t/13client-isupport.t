@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 19;
+use Test::More tests => 22;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 use IO::Async::Stream;
@@ -72,9 +72,19 @@ is( $irc->cmp_prefix_modes( "h", "b" ), undef, 'cmp_prefix_modes h b -> undef' )
 
 is( $irc->casefold_name( "NAME" ),      "name",      'casefold_name NAME' );
 is( $irc->casefold_name( "FOO[AWAY]" ), "foo{away}", 'casefold_name FOO[AWAY]' );
+is( $irc->casefold_name( "user^name" ), "user~name", 'casefold_name user^name' );
 
-## MASSIVE CHEATING
-$irc->{casemap_1459} = 0;
-## END MASSIVE CHEATING
+## CHEATING
+$S2->syswrite( ':irc.example.com 005 YourNameHere CASEMAPPING=strict-rfc1459 :are supported by this server' . $CRLF );
+wait_for { $irc->isupport( "CASEMAPPING" ) eq "strict-rfc1459" };
+## END CHEATING
 
-is( $irc->casefold_name( "FOO[AWAY]" ), "foo[away]", 'casefold_name FOO[AWAY] without RFC1459' );
+is( $irc->casefold_name( "FOO[AWAY]" ), "foo{away}", 'casefold_name FOO[AWAY] under strict' );
+is( $irc->casefold_name( "user^name" ), "user^name", 'casefold_name user^name under strict' );
+
+## CHEATING
+$S2->syswrite( ':irc.example.com 005 YourNameHere CASEMAPPING=ascii :are supported by this server' . $CRLF );
+wait_for { $irc->isupport( "CASEMAPPING" ) eq "ascii" };
+## END CHEATING
+
+is( $irc->casefold_name( "FOO[AWAY]" ), "foo[away]", 'casefold_name FOO[AWAY] under ascii' );
