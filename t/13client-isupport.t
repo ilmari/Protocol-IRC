@@ -45,17 +45,17 @@ $S2->syswrite( ':irc.example.com 001 YourNameHere :Welcome to IRC YourNameHere!m
 
 $S2->syswrite( ':irc.example.com 005 YourNameHere NAMESX MAXCHANNELS=10 NICKLEN=30 PREFIX=(ohv)@%+ CASEMAPPING=rfc1459 :are supported by this server' . $CRLF );
 
-wait_for { defined $irc->ISUPPORT( "NAMESX" ) };
+wait_for { defined $irc->isupport( "NAMESX" ) };
 
-is( $irc->ISUPPORT( "NAMESX" ), 1, 'ISUPPORT NAMESX is true' );
+is( $irc->isupport( "NAMESX" ), 1, 'ISUPPORT NAMESX is true' );
 
-is( $irc->ISUPPORT( "MAXCHANNELS" ), "10", 'ISUPPORT MAXCHANNELS is 10' );
+is( $irc->isupport( "MAXCHANNELS" ), "10", 'ISUPPORT MAXCHANNELS is 10' );
 
-is( $irc->ISUPPORT( "PREFIX" ), "(ohv)\@\%+", 'ISUPPORT PREFIX is (ohv)@%+' );
+is( $irc->isupport( "PREFIX" ), "(ohv)\@\%+", 'ISUPPORT PREFIX is (ohv)@%+' );
 
 # Now the generated ones from PREFIX
-is( $irc->ISUPPORT( "PREFIX_MODES" ), "ohv", 'ISUPPORT PREFIX_MODES is ohv' );
-is( $irc->ISUPPORT( "PREFIX_FLAGS" ), "\@\%+", 'ISUPPORT PREFIX_FLAGS is @%+' );
+is( $irc->isupport( "PREFIX_MODES" ), "ohv", 'ISUPPORT PREFIX_MODES is ohv' );
+is( $irc->isupport( "PREFIX_FLAGS" ), "\@\%+", 'ISUPPORT PREFIX_FLAGS is @%+' );
 
 is( $irc->prefix_mode2flag( "o" ), "\@", 'prefix_mode2flag o -> @' );
 is( $irc->prefix_flag2mode( "\@" ), "o", 'prefix_flag2mode @ -> o' );

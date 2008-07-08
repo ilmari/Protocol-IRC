@@ -519,7 +519,7 @@ sub is_prefix_me
 
 # ISUPPORT and related
 
-sub ISUPPORT
+sub isupport
 {
    my $self = shift;
    my ( $flag ) = @_;
@@ -540,7 +540,7 @@ sub cmp_prefix_flags
    return 1 if $rhs eq "";
    return -1 if $lhs eq "";
 
-   my $PREFIX_FLAGS = $self->ISUPPORT( "PREFIX_FLAGS" );
+   my $PREFIX_FLAGS = $self->isupport( "PREFIX_FLAGS" );
 
    ( my $lhs_index = index $PREFIX_FLAGS, $lhs ) > -1 or return undef;
    ( my $rhs_index = index $PREFIX_FLAGS, $rhs ) > -1 or return undef;
@@ -556,7 +556,7 @@ sub cmp_prefix_modes
 
    return undef unless defined $lhs and defined $rhs;
 
-   my $PREFIX_MODES = $self->ISUPPORT( "PREFIX_MODES" );
+   my $PREFIX_MODES = $self->isupport( "PREFIX_MODES" );
 
    ( my $lhs_index = index $PREFIX_MODES, $lhs ) > -1 or return undef;
    ( my $rhs_index = index $PREFIX_MODES, $rhs ) > -1 or return undef;
