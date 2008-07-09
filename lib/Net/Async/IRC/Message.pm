@@ -93,6 +93,18 @@ sub prefix
    return defined $self->{prefix} ? $self->{prefix} : "";
 }
 
+sub prefix_split
+{
+   my $self = shift;
+
+   my $prefix = $self->prefix;
+
+   return ( $1, $2, $3 ) if $prefix =~ m/^(.*?)!(.*?)@(.*)$/;
+
+   # $prefix doesn't split into nick!ident@host so presume host only
+   return ( undef, undef, $prefix );
+}
+
 sub arg
 {
    my $self = shift;

@@ -5,7 +5,7 @@ use strict;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 
-use Test::More tests => 18;
+use Test::More tests => 12;
 
 use IO::Socket::UNIX;
 use Socket qw( AF_UNIX SOCK_STREAM PF_UNSPEC );
@@ -38,11 +38,6 @@ is( $irc->nick, "FirstNick", 'Initial nick is set' );
 ok( $irc->is_nick_me( "FirstNick" ), 'Client recognises initial nick' );
 ok( !$irc->is_nick_me( "SomeoneElse" ), 'Client does not recognise other nick' );
 
-ok( $irc->is_prefix_me( "FirstNick!defaultuser\@your.host.here" ),
-   'Client recognises initial prefix' );
-ok( !$irc->is_prefix_me( "SomeoneElse!theiruser\@their.host.here" ),
-   'Client does not recognise other prefix' );
-
 my $logged_in = 0;
 
 $irc->login(
@@ -69,11 +64,6 @@ is( $irc->nick, "FirstNick", 'Nick still old until server confirms' );
 ok( $irc->is_nick_me( "FirstNick" ), 'Client recognises still old nick' );
 ok( !$irc->is_nick_me( "SecondNick" ), 'Client does not recognise new nick' );
 
-ok( $irc->is_prefix_me( "FirstNick!defaultuser\@your.host.here" ),
-   'Client recognises still old prefix' );
-ok( !$irc->is_prefix_me( "SecondNick!defaultuser\@your.host.here" ),
-   'Client does not recognise new nick' );
-
 $serverstream = "";
 
 wait_for_stream { $serverstream =~ m/$CRLF/ } $S2 => $serverstream;
@@ -88,8 +78,3 @@ is( $irc->nick, "SecondNick", 'Object now confirms new nick' );
 
 ok( !$irc->is_nick_me( "FirstNick" ), 'Client no longer recognises old nick' );
 ok( $irc->is_nick_me( "SecondNick" ), 'Client now recognises new nick' );
-
-ok( !$irc->is_prefix_me( "FirstNick!defaultuser\@your.host.here" ),
-   'Client no longer recognises old prefix' );
-ok( $irc->is_prefix_me( "SecondNick!defaultuser\@your.host.here" ),
-   'Client now recognises new prefix' );

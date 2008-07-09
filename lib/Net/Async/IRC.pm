@@ -243,7 +243,7 @@ sub incoming_message
 
    my $command = $message->command;
 
-   my ( $prefix_nick ) = $self->split_prefix( $message->prefix );
+   my ( $prefix_nick, undef, undef ) = $message->prefix_split;
 
    my $hints = {
       handled => 0,
@@ -500,33 +500,12 @@ sub _reset_pingtimer
    );
 }
 
-sub split_prefix
-{
-   my $self = shift;
-   my ( $prefix ) = @_;
-
-   return ( $1, $2, $3 ) if $prefix =~ m/^(.*?)!(.*?)@(.*)$/;
-
-   # $prefix doesn't split into nick!ident@host so presume host only
-   return ( undef, undef, $prefix );
-}
-
 sub is_nick_me
 {
    my $self = shift;
    my ( $nick ) = @_;
 
    return $self->casefold_name( $nick ) eq $self->{nick_folded};
-}
-
-sub is_prefix_me
-{
-   my $self = shift;
-   my ( $prefix ) = @_;
-
-   my ( $nick, undef, undef ) = $self->split_prefix( $prefix );
-
-   return defined $nick && $self->is_nick_me( $nick );
 }
 
 # ISUPPORT and related
