@@ -263,12 +263,77 @@ sub incoming_message
       $hints->{$_} = $named_args->{$_} for keys %$named_args;
    }
 
+   my $prepare_method = "prepare_hints_$command";
+   $self->$prepare_method( $message, $hints ) if $self->can( $prepare_method );
+
    foreach my $k ( grep { m/_nick$/ or m/_name$/ } keys %$hints ) {
       $hints->{"${k}_folded"} = $self->casefold_name( $hints->{$k} );
    }
 
    $self->_invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
    $self->_invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
+}
+
+#########################
+# Prepare hints methods #
+#########################
+
+sub prepare_hints_MODE
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   if( $hints->{target_type} eq "channel" ) {
+      my ( $listmodes, $argmodes, $argsetmodes, $boolmodes ) = @{ $self->{isupport}->{CHANMODES_LIST} };
+
+      my ( undef, $modechars, @modeargs ) = $message->args;
+
+      my @modes; # [] -> { type => $, sense => $, mode => $, arg => $ }
+
+      my $sense = 0;
+      foreach my $modechar ( split( m//, $modechars ) ) {
+         $sense =  1, next if $modechar eq "+";
+         $sense = -1, next if $modechar eq "-";
+
+         my $type;
+         my $hasarg;
+
+         if( index( $listmodes, $modechar ) > -1 ) {
+            $type = 'list';
+            $hasarg = ( $sense != 0 );
+         }
+         elsif( index( $argmodes, $modechar ) > -1 ) {
+            $type = 'value';
+            $hasarg = ( $sense != 0 );
+         }
+         elsif( index( $argsetmodes, $modechar ) > -1 ) {
+            $type = 'value';
+            $hasarg = ( $sense > 0 );
+         }
+         elsif( index( $boolmodes, $modechar ) > -1 ) {
+            $type = 'bool';
+            $hasarg = 0;
+         }
+         elsif( $self->prefix_mode2flag( $modechar ) ) {
+            $type = 'occupant';
+            $hasarg = ( $sense != 0 );
+         }
+         else {
+            # TODO: Err... not recognised ... what do I do?
+         }
+
+         # TODO: Consider a per-mode event here...
+
+         push @modes, {
+            type  => $type,
+            sense => $sense,
+            mode  => $modechar,
+            arg   => $hasarg ? shift @modeargs : undef,
+         };
+      }
+
+      $hints->{modes} = \@modes;
+   }
 }
 
 ############################
