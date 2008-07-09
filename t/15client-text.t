@@ -79,6 +79,7 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
+                     text         => "Their message here",
                      handled      => 1 }, '$hints[PRIVMSG] for PRIVMSG' );
 
 ( $msg, $hints ) = @{ $messages{text} };
@@ -118,6 +119,7 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
+                     text         => "Message to all",
                      handled      => 1 }, '$hints[PRIVMSG] for PRIVMSG to channel' );
 
 ( $msg, $hints ) = @{ $messages{text} };
@@ -158,6 +160,7 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
+                     text         => "Is anyone listening?",
                      handled      => 1 }, '$hints[NOTICE] for NOTICE to channel' );
 
 ( $msg, $hints ) = @{ $messages{text} };
@@ -198,6 +201,7 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_name_folded => "@#channel",
                      target_is_me => '',
                      target_type  => "user",
+                     text         => "To only the important people",
                      handled      => 1 }, '$hints[PRIVMSG] for PRIVMSG to channel ops' );
 
 ( $msg, $hints ) = @{ $messages{text} };
@@ -238,6 +242,7 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
+                     text         => "\001ACTION does something\001",
                      handled      => 1 }, '$hints[PRIVMSG] for CTCP ACTION' );
 
 ( $msg, $hints ) = @{ $messages{"ctcp ACTION"} };
@@ -254,6 +259,7 @@ is_deeply( $hints, { synthesized  => 1,
                      target_is_me => 1,
                      target_type  => "user",
                      is_notice    => 0,
+                     text         => "\001ACTION does something\001",
                      ctcp_verb    => "ACTION",
                      ctcp_args    => "does something",
                      handled      => 1 }, '$hints[ctcp] for CTCP ACTION' );

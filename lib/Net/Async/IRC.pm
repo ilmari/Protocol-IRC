@@ -248,22 +248,32 @@ sub incoming_message
    my $hints = {
       handled => 0,
 
-      prefix_nick        => $prefix_nick,
-      prefix_nick_folded => $self->casefold_name( $prefix_nick ),
-      prefix_is_me       => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
+      prefix_nick  => $prefix_nick,
+      prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
    };
 
    my $target_name = $message->target_arg;
    if( defined $target_name ) {
       $hints->{target_name}  = $target_name;
-      $hints->{target_name_folded} = $self->casefold_name( $target_name );
       $hints->{target_is_me} = $self->is_nick_me( $target_name );
       $hints->{target_type}  = ( $target_name =~ $self->{channame_re} ) ? "channel" : "user";
+   }
+
+   if( my $named_args = $message->named_args ) {
+      $hints->{$_} = $named_args->{$_} for keys %$named_args;
+   }
+
+   foreach my $k ( grep { m/_nick$/ or m/_name$/ } keys %$hints ) {
+      $hints->{"${k}_folded"} = $self->casefold_name( $hints->{$k} );
    }
 
    $self->_invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
    $self->_invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
 }
+
+############################
+# Message handling methods #
+############################
 
 sub on_message_NICK
 {
@@ -271,7 +281,7 @@ sub on_message_NICK
    my ( $message, $hints ) = @_;
 
    if( $hints->{prefix_is_me} ) {
-      $self->set_nick( $message->arg(0) );
+      $self->set_nick( $hints->{new_nick} );
       return 1;
    }
 
@@ -288,9 +298,9 @@ sub on_message_NOTICE
 sub on_message_PING
 {
    my $self = shift;
-   my ( $message ) = @_;
+   my ( $message, $hints ) = @_;
 
-   $self->send_message( "PONG", undef, $message->arg(0) );
+   $self->send_message( "PONG", undef, $hints->{text} );
    return 1;
 }
 
@@ -333,7 +343,7 @@ sub _on_message_text
       is_notice => $is_notice,
    );
 
-   my $target = $message->arg(0);
+   my $target = $hints->{target_name};
 
    my $restriction = "";
    while( $target =~ $self->{prefixmode_re} ) {
@@ -355,7 +365,7 @@ sub _on_message_text
       $hints{target_is_me} = $self->is_nick_me( $target );
    }
 
-   my $text   = $message->arg(1);
+   my $text = $hints->{text};
 
    if( $text =~ m/^\x01(.*)\x01$/ ) {
       ( my $verb, $text ) = split( m/ /, $1, 2 );

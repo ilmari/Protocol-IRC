@@ -92,6 +92,7 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
+                     text         => "Their message here",
                      handled      => 1 }, '$hints for PRIVMSG' );
 
 $S2->syswrite( ':MyNick!me@your.host PRIVMSG MyNick :Hello to me' . $CRLF );
@@ -110,6 +111,7 @@ is_deeply( $hints, { prefix_nick  => "MyNick",
                      target_name_folded => "mynick",
                      target_is_me => 1,
                      target_type  => "user",
+                     text         => "Hello to me",
                      handled      => 1 }, '$hints for PRIVMSG to self' );
 
 $S2->syswrite( ':Someone!theiruser@their.host TOPIC #channel :Message of the day' . $CRLF );
@@ -128,6 +130,9 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
+                     channel_name => "#channel",
+                     channel_name_folded => "#channel",
+                     text         => "Message of the day",
                      handled      => 1 }, '$hints for TOPIC' );
 
 $S2->syswrite( ':Someone!theiruser@their.host NOTICE #channel :Please ignore me' . $CRLF );
@@ -146,4 +151,5 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
+                     text         => "Please ignore me",
                      handled      => 0 }, '$hints for NOTICE' );
