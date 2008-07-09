@@ -242,6 +242,15 @@ my %ARG_NAMES = (
    PRIVMSG => { text => 1 }, # targets are handled specially
    TOPIC   => { channel_name => 0,
                 text         => 1 },
+
+   324 => { channel_name => 1,
+            modechars    => 2,
+            modeargs     => "3+" },
+   332 => { channel_name => 1,
+            text         => 2 },
+   353 => { channel_name => 2,
+            names        => "3+" },
+   366 => { channel_name => 1 },
 );
 
 sub arg_names

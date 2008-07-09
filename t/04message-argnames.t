@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 8;
+use Test::More tests => 10;
 use Test::Exception;
 
 use Net::Async::IRC::Message;
@@ -41,3 +41,8 @@ test_argnames "PART",
    ":TheirNick!user\@server PART #somechannel :A leaving message",
    names => { channel_name => 0, text => 1 },
    args  => { channel_name => "#somechannel", text => "A leaving message" };
+
+test_argnames "324",
+   ":server 324 YourNick #somechannel +ntl 300",
+   names => { channel_name => 1, modechars => "2", modeargs => "3+" },
+   args  => { channel_name => "#somechannel", modechars => "+ntl", modeargs => [ "300" ] };
