@@ -24,15 +24,15 @@ sub test_argnames
 
 test_argnames "PING",
    ":server PING 1234",
-   names => [ "text" ],
+   names => { text => 0 },
    args  => { text => "1234" };
 
 test_argnames "PRIVMSG",
    ":TheirNick!user\@server PRIVMSG YourNick :A message",
-   names => [ undef, "text" ],
+   names => { text => 1 },
    args  => { text => "A message" };
 
 test_argnames "PART",
    ":TheirNick!user\@server PART #somechannel :A leaving message",
-   names => [ "channel_name", "text" ],
+   names => { channel_name => 0, text => 1 },
    args  => { channel_name => "#somechannel", text => "A leaving message" };

@@ -215,22 +215,28 @@ sub target_arg
 
 # Argument naming information
 
-# This hash holds ARRAY refs giving the names of the positional arguments of
-# any message
+# This hash holds HASH refs giving the names of the positional arguments of
+# any message. The hash keys store the argument names, and the values store
+# an argument index
 
 my %ARG_NAMES = (
-   INVITE  => [ "invited_nick", "channel_name" ],
-   JOIN    => [ "channel_name" ],
-   KICK    => [ "channel_name", "kicked_nick", "text" ],
+   INVITE  => { invited_nick  => 0,
+                channel_name => 1 },
+   JOIN    => { channel_name => 0 },
+   KICK    => { channel_name => 0,
+                kicked_nick  => 1,
+                text         => 2 },
 #  MODE is special and can't easily be done here
-   NICK    => [ "new_nick" ],
-   NOTICE  => [ undef, "text" ], # targets are handled specially
-   PING    => [ "text" ],
-   PONG    => [ "text" ],
-   QUIT    => [ "text" ],
-   PART    => [ "channel_name", "text" ],
-   PRIVMSG => [ undef, "text" ], # targets are handled specially
-   TOPIC   => [ "channel_name", "text" ],
+   NICK    => { new_nick => 0 },
+   NOTICE  => { text => 1 }, # targets are handled specially
+   PING    => { text => 0 },
+   PONG    => { text => 0 },
+   QUIT    => { text => 0 },
+   PART    => { channel_name => 0,
+                text         => 1 },
+   PRIVMSG => { text => 1 }, # targets are handled specially
+   TOPIC   => { channel_name => 0,
+                text         => 1 },
 );
 
 sub arg_names
@@ -247,9 +253,8 @@ sub named_args
    my $argnames = $self->arg_names or return;
 
    my %named_args;
-   foreach my $i ( 0 .. $#$argnames ) {
-      defined( my $name = $argnames->[$i] ) or next;
-      defined( my $value = $self->arg($i) ) or next;
+   foreach my $name ( keys %$argnames ) {
+      my $value = $self->arg( $argnames->{$name} );
 
       $named_args{$name} = $value;
    }
