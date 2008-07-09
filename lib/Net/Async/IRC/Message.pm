@@ -151,68 +151,6 @@ sub stream_to_line
    return $line;
 }
 
-# Targeting information
-
-# This hash holds the argument number for the 'target' of any message type
-
-my %TARGET_ARG;
-
-# Named commands
-$TARGET_ARG{$_} = 0 for qw(
-   INVITE JOIN KICK LIST MODE NAMES NOTICE PART PRIVMSG TOPIC WHO WHOIS WHOWAS
-);
-
-# Normal targeted numerics
-$TARGET_ARG{$_} = 1 for qw(
-   301
-   311 312 313 314 317 318 319 369
-   324 331 332 341
-   346 347 348 349 367 368
-   352 315
-   366
-   401 402 403 404 405 406 408
-   432 433 436 437
-   442 444
-   467 471 473 474 475 476 477 478
-   482
-);
-
-# 353 RPL_NAMREPLY is weird
-$TARGET_ARG{353} = 2;
-
-# 441 ERR_USERNOTINCHANNEL: <nick> <channel> so we'll target channel
-$TARGET_ARG{441} = 2;
-# 443 ERR_USERONCHANNEL: <nick> <channel> so we'll target channel
-$TARGET_ARG{443} = 2;
-
-# TODO: 472 ERR_UNKNOWNMODE: <char> :is unknown mode char to me for <channel>
-# How to parse this one??
-
-sub target_arg_index
-{
-   my $self = shift;
-
-   if( exists $TARGET_ARG{$self->{command}} ) {
-      return $TARGET_ARG{$self->{command}};
-   }
-   else {
-      return undef;
-   }
-}
-
-sub is_targeted
-{
-   my $self = shift;
-   return defined $self->target_arg_index;
-}
-
-sub target_arg
-{
-   my $self = shift;
-   my $index = $self->target_arg_index;
-   return defined $index ? $self->arg( $index ) : undef;
-}
-
 # Argument naming information
 
 # This hash holds HASH refs giving the names of the positional arguments of
@@ -223,35 +161,64 @@ sub target_arg
 my %ARG_NAMES = (
    INVITE  => { inviter_nick => "pn",
                 invited_nick => 0,
-                channel_name => 1 },
-   JOIN    => { channel_name => 0 },
-   KICK    => { kicker_nick  => "pn",
-                channel_name => 0,
-                kicked_nick  => 1,
-                text         => 2 },
-   MODE    => { modechars => 1,
-                modeargs  => "2+" },
+                target_name  => 1 },
+   KICK    => { kicker_nick => "pn",
+                target_name => 0,
+                kicked_nick => 1,
+                text        => 2 },
+   MODE    => { target_name => 0,
+                modechars   => 1,
+                modeargs    => "2+" },
    NICK    => { old_nick => "pn",
                 new_nick => 0 },
-   NOTICE  => { text => 1 }, # targets are handled specially
+   NOTICE  => { target_name => 0,
+                text        => 1 },
    PING    => { text => 0 },
    PONG    => { text => 0 },
    QUIT    => { text => 0 },
-   PART    => { channel_name => 0,
-                text         => 1 },
-   PRIVMSG => { text => 1 }, # targets are handled specially
-   TOPIC   => { channel_name => 0,
-                text         => 1 },
+   PART    => { target_name => 0,
+                text        => 1 },
+   PRIVMSG => { target_name => 0,
+                text        => 1 },
+   TOPIC   => { target_name => 0,
+                text        => 1 },
 
-   324 => { channel_name => 1,
-            modechars    => 2,
-            modeargs     => "3+" },
-   332 => { channel_name => 1,
-            text         => 2 },
-   353 => { channel_name => 2,
-            names        => "3+" },
-   366 => { channel_name => 1 },
+   324 => { target_name => 1,
+            modechars   => 2,
+            modeargs    => "3+" },
+   332 => { target_name => 1,
+            text        => 2 },
+   353 => { target_name => 2,
+            names       => "3+" },
+   366 => { target_name => 1 },
 );
+
+# Misc. named commands
+$ARG_NAMES{$_} = { target_name => 0 } for qw(
+   JOIN LIST NAMES WHO WHOIS WHOWAS
+);
+
+# Normal targeted numerics
+$ARG_NAMES{$_} = { target_name => 1 } for qw(
+   301
+   311 312 313 314 317 318 319 369
+   331 341
+   346 347 348 349 367 368
+   315
+   401 402 403 404 405 406 408
+   432 433 436 437
+   442 444
+   467 471 473 474 475 476 477 478
+   482
+);
+
+# 441 ERR_USERNOTINCHANNEL: <nick> <channel> so we'll target channel
+$ARG_NAMES{441} = { user_nick => 1, target_name => 2 };
+# 443 ERR_USERONCHANNEL: <nick> <channel> so we'll target channel
+$ARG_NAMES{443} = { user_nick => 1, target_name => 2 };
+
+# TODO: 472 ERR_UNKNOWNMODE: <char> :is unknown mode char to me for <channel>
+# How to parse this one??
 
 sub arg_names
 {

@@ -130,8 +130,6 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_name_folded => "#channel",
                      target_is_me => '',
                      target_type  => "channel",
-                     channel_name => "#channel",
-                     channel_name_folded => "#channel",
                      text         => "Message of the day",
                      handled      => 1 }, '$hints for TOPIC' );
 

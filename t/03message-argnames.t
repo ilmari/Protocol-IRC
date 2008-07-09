@@ -29,20 +29,20 @@ test_argnames "PING",
 
 test_argnames "PRIVMSG",
    ":TheirNick!user\@server PRIVMSG YourNick :A message",
-   names => { text => 1 },
-   args  => { text => "A message" };
+   names => { target_name => 0, text => 1 },
+   args  => { target_name => "YourNick", text => "A message" };
 
 test_argnames "MODE",
    ":TheirNick!user\@server MODE #somechannel +oo Some Friends",
-   names => { modechars => "1", modeargs => "2+" },
-   args  => { modechars => "+oo", modeargs => [ "Some", "Friends" ] };
+   names => { target_name => 0, modechars => "1", modeargs => "2+" },
+   args  => { target_name => "#somechannel", modechars => "+oo", modeargs => [ "Some", "Friends" ] };
 
 test_argnames "PART",
    ":TheirNick!user\@server PART #somechannel :A leaving message",
-   names => { channel_name => 0, text => 1 },
-   args  => { channel_name => "#somechannel", text => "A leaving message" };
+   names => { target_name => 0, text => 1 },
+   args  => { target_name => "#somechannel", text => "A leaving message" };
 
 test_argnames "324",
    ":server 324 YourNick #somechannel +ntl 300",
-   names => { channel_name => 1, modechars => "2", modeargs => "3+" },
-   args  => { channel_name => "#somechannel", modechars => "+ntl", modeargs => [ "300" ] };
+   names => { target_name => 1, modechars => "2", modeargs => "3+" },
+   args  => { target_name => "#somechannel", modechars => "+ntl", modeargs => [ "300" ] };
