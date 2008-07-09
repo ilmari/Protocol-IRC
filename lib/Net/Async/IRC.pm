@@ -278,62 +278,79 @@ sub incoming_message
 # Prepare hints methods #
 #########################
 
+sub prepare_hints_channelmode
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   my ( $listmodes, $argmodes, $argsetmodes, $boolmodes ) = @{ $self->{isupport}->{CHANMODES_LIST} };
+
+   my $modechars = $hints->{modechars};
+   my @modeargs = @{ $hints->{modeargs} };
+
+   my @modes; # [] -> { type => $, sense => $, mode => $, arg => $ }
+
+   my $sense = 0;
+   foreach my $modechar ( split( m//, $modechars ) ) {
+      $sense =  1, next if $modechar eq "+";
+      $sense = -1, next if $modechar eq "-";
+
+      my $type;
+      my $hasarg;
+
+      if( index( $listmodes, $modechar ) > -1 ) {
+         $type = 'list';
+         $hasarg = ( $sense != 0 );
+      }
+      elsif( index( $argmodes, $modechar ) > -1 ) {
+         $type = 'value';
+         $hasarg = ( $sense != 0 );
+      }
+      elsif( index( $argsetmodes, $modechar ) > -1 ) {
+         $type = 'value';
+         $hasarg = ( $sense > 0 );
+      }
+      elsif( index( $boolmodes, $modechar ) > -1 ) {
+         $type = 'bool';
+         $hasarg = 0;
+      }
+      elsif( $self->prefix_mode2flag( $modechar ) ) {
+         $type = 'occupant';
+         $hasarg = ( $sense != 0 );
+      }
+      else {
+         # TODO: Err... not recognised ... what do I do?
+      }
+
+      # TODO: Consider a per-mode event here...
+
+      push @modes, {
+         type  => $type,
+         sense => $sense,
+         mode  => $modechar,
+         arg   => $hasarg ? shift @modeargs : undef,
+      };
+   }
+
+   $hints->{modes} = \@modes;
+}
+
 sub prepare_hints_MODE
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
 
    if( $hints->{target_type} eq "channel" ) {
-      my ( $listmodes, $argmodes, $argsetmodes, $boolmodes ) = @{ $self->{isupport}->{CHANMODES_LIST} };
-
-      my ( undef, $modechars, @modeargs ) = $message->args;
-
-      my @modes; # [] -> { type => $, sense => $, mode => $, arg => $ }
-
-      my $sense = 0;
-      foreach my $modechar ( split( m//, $modechars ) ) {
-         $sense =  1, next if $modechar eq "+";
-         $sense = -1, next if $modechar eq "-";
-
-         my $type;
-         my $hasarg;
-
-         if( index( $listmodes, $modechar ) > -1 ) {
-            $type = 'list';
-            $hasarg = ( $sense != 0 );
-         }
-         elsif( index( $argmodes, $modechar ) > -1 ) {
-            $type = 'value';
-            $hasarg = ( $sense != 0 );
-         }
-         elsif( index( $argsetmodes, $modechar ) > -1 ) {
-            $type = 'value';
-            $hasarg = ( $sense > 0 );
-         }
-         elsif( index( $boolmodes, $modechar ) > -1 ) {
-            $type = 'bool';
-            $hasarg = 0;
-         }
-         elsif( $self->prefix_mode2flag( $modechar ) ) {
-            $type = 'occupant';
-            $hasarg = ( $sense != 0 );
-         }
-         else {
-            # TODO: Err... not recognised ... what do I do?
-         }
-
-         # TODO: Consider a per-mode event here...
-
-         push @modes, {
-            type  => $type,
-            sense => $sense,
-            mode  => $modechar,
-            arg   => $hasarg ? shift @modeargs : undef,
-         };
-      }
-
-      $hints->{modes} = \@modes;
+      $self->prepare_hints_channelmode( $message, $hints );
    }
+}
+
+sub prepare_hints_324 # RPL_CHANNELMODEIS
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   $self->prepare_hints_channelmode( $message, $hints );
 }
 
 ############################
