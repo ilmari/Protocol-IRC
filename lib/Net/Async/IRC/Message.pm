@@ -201,5 +201,49 @@ sub target_arg
    return defined $index ? $self->arg( $index ) : undef;
 }
 
+# Argument naming information
+
+# This hash holds ARRAY refs giving the names of the positional arguments of
+# any message
+
+my %ARG_NAMES = (
+   INVITE  => [ "invited_nick", "channel_name" ],
+   JOIN    => [ "channel_name" ],
+   KICK    => [ "channel_name", "kicked_nick", "text" ],
+#  MODE is special and can't easily be done here
+   NICK    => [ "new_nick" ],
+   NOTICE  => [ undef, "text" ], # targets are handled specially
+   PING    => [ "text" ],
+   PONG    => [ "text" ],
+   QUIT    => [ "text" ],
+   PART    => [ "channel_name", "text" ],
+   PRIVMSG => [ undef, "text" ], # targets are handled specially
+   TOPIC   => [ "channel_name", "text" ],
+);
+
+sub arg_names
+{
+   my $self = shift;
+
+   return $ARG_NAMES{$self->{command}};
+}
+
+sub named_args
+{
+   my $self = shift;
+
+   my $argnames = $self->arg_names or return;
+
+   my %named_args;
+   foreach my $i ( 0 .. $#$argnames ) {
+      defined( my $name = $argnames->[$i] ) or next;
+      defined( my $value = $self->arg($i) ) or next;
+
+      $named_args{$name} = $value;
+   }
+
+   return \%named_args;
+}
+
 # Keep perl happy; keep Britain tidy
 1;
