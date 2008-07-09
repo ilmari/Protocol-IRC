@@ -217,7 +217,8 @@ sub target_arg
 
 # This hash holds HASH refs giving the names of the positional arguments of
 # any message. The hash keys store the argument names, and the values store
-# an argument index, or the string "pn" meaning prefix nick
+# an argument index, the string "pn" meaning prefix nick, or "$n+" meaning
+# that index onwards
 
 my %ARG_NAMES = (
    INVITE  => { inviter_nick => "pn",
@@ -228,7 +229,8 @@ my %ARG_NAMES = (
                 channel_name => 0,
                 kicked_nick  => 1,
                 text         => 2 },
-#  MODE is special and can't easily be done here
+   MODE    => { modechars => 1,
+                modeargs  => "2+" },
    NICK    => { old_nick => "pn",
                 new_nick => 0 },
    NOTICE  => { text => 1 }, # targets are handled specially
@@ -262,6 +264,10 @@ sub named_args
       my $value;
       if( $argindex eq "pn" ) {
          ( $value, undef, undef ) = $self->prefix_split;
+      }
+      elsif( $argindex =~ m/(\d)\+/ ) {
+         my @args = $self->args;
+         $value = [ splice( @args, $1 ) ];
       }
       else {
          $value = $self->arg( $argindex );

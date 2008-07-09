@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 6;
+use Test::More tests => 8;
 use Test::Exception;
 
 use Net::Async::IRC::Message;
@@ -31,6 +31,11 @@ test_argnames "PRIVMSG",
    ":TheirNick!user\@server PRIVMSG YourNick :A message",
    names => { text => 1 },
    args  => { text => "A message" };
+
+test_argnames "MODE",
+   ":TheirNick!user\@server MODE #somechannel +oo Some Friends",
+   names => { modechars => "1", modeargs => "2+" },
+   args  => { modechars => "+oo", modeargs => [ "Some", "Friends" ] };
 
 test_argnames "PART",
    ":TheirNick!user\@server PART #somechannel :A leaving message",
