@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 21;
+use Test::More tests => 24;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 use IO::Async::Stream;
@@ -153,3 +153,21 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      target_type  => "channel",
                      text         => "Please ignore me",
                      handled      => 0 }, '$hints for NOTICE' );
+
+$S2->syswrite( ':Someone!theiruser@their.host NICK NewName' . $CRLF );
+
+wait_for { @messages };
+
+( $command, $msg, $hints ) = @{ shift @messages };
+
+is( $msg->command, "NICK",                         '$msg->command for NICK' );
+is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for NICK' );
+
+is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
+                     prefix_is_me => '',
+                     old_nick     => "Someone",
+                     old_nick_folded => "someone",
+                     new_nick     => "NewName",
+                     new_nick_folded => "newname",
+                     handled      => 1 }, '$hints for NICK' );

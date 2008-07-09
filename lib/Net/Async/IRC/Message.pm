@@ -217,17 +217,20 @@ sub target_arg
 
 # This hash holds HASH refs giving the names of the positional arguments of
 # any message. The hash keys store the argument names, and the values store
-# an argument index
+# an argument index, or the string "pn" meaning prefix nick
 
 my %ARG_NAMES = (
-   INVITE  => { invited_nick  => 0,
+   INVITE  => { inviter_nick => "pn",
+                invited_nick => 0,
                 channel_name => 1 },
    JOIN    => { channel_name => 0 },
-   KICK    => { channel_name => 0,
+   KICK    => { kicker_nick  => "pn",
+                channel_name => 0,
                 kicked_nick  => 1,
                 text         => 2 },
 #  MODE is special and can't easily be done here
-   NICK    => { new_nick => 0 },
+   NICK    => { old_nick => "pn",
+                new_nick => 0 },
    NOTICE  => { text => 1 }, # targets are handled specially
    PING    => { text => 0 },
    PONG    => { text => 0 },
@@ -254,7 +257,15 @@ sub named_args
 
    my %named_args;
    foreach my $name ( keys %$argnames ) {
-      my $value = $self->arg( $argnames->{$name} );
+      my $argindex = $argnames->{$name};
+
+      my $value;
+      if( $argindex eq "pn" ) {
+         ( $value, undef, undef ) = $self->prefix_split;
+      }
+      else {
+         $value = $self->arg( $argindex );
+      }
 
       $named_args{$name} = $value;
    }
