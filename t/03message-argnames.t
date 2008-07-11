@@ -34,7 +34,7 @@ test_argnames "PRIVMSG",
 
 test_argnames "MODE",
    ":TheirNick!user\@server MODE #somechannel +oo Some Friends",
-   names => { target_name => 0, modechars => "1", modeargs => "2+" },
+   names => { target_name => 0, modechars => "1", modeargs => "2.." },
    args  => { target_name => "#somechannel", modechars => "+oo", modeargs => [ "Some", "Friends" ] };
 
 test_argnames "PART",
@@ -44,5 +44,5 @@ test_argnames "PART",
 
 test_argnames "324",
    ":server 324 YourNick #somechannel +ntl 300",
-   names => { target_name => 1, modechars => "2", modeargs => "3+" },
+   names => { target_name => 1, modechars => "2", modeargs => "3.." },
    args  => { target_name => "#somechannel", modechars => "+ntl", modeargs => [ "300" ] };

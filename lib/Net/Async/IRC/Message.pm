@@ -145,8 +145,8 @@ sub stream_to_line
 
 # This hash holds HASH refs giving the names of the positional arguments of
 # any message. The hash keys store the argument names, and the values store
-# an argument index, the string "pn" meaning prefix nick, or "$n+" meaning
-# that index onwards
+# an argument index, the string "pn" meaning prefix nick, or "$n~$m" meaning
+# an index range. Endpoint can be absent.
 
 my %ARG_NAMES = (
    INVITE  => { inviter_nick => "pn",
@@ -158,7 +158,7 @@ my %ARG_NAMES = (
                 text        => 2 },
    MODE    => { target_name => 0,
                 modechars   => 1,
-                modeargs    => "2+" },
+                modeargs    => "2.." },
    NICK    => { old_nick => "pn",
                 new_nick => 0 },
    NOTICE  => { target_name => 0,
@@ -175,11 +175,11 @@ my %ARG_NAMES = (
 
    324 => { target_name => 1,
             modechars   => 2,
-            modeargs    => "3+" },
+            modeargs    => "3.." },
    332 => { target_name => 1,
             text        => 2 },
    353 => { target_name => 2,
-            names       => "3+" },
+            names       => "3.." },
    366 => { target_name => 1 },
 );
 
@@ -231,12 +231,22 @@ sub named_args
       if( $argindex eq "pn" ) {
          ( $value, undef, undef ) = $self->prefix_split;
       }
-      elsif( $argindex =~ m/(\d)\+/ ) {
+      elsif( $argindex =~ m/^(-?\d+)?\.\.(-?\d+)?$/ ) {
+         my ( $start, $end ) = ( $1, $2 );
          my @args = $self->args;
-         $value = [ splice( @args, $1 ) ];
+
+         defined $start or $start = 0;
+         defined $end   or $end = $#args;
+
+         $end += @args if $end < 0;
+
+         $value = [ splice( @args, $start, $end-$start+1 ) ];
+      }
+      elsif( $argindex =~ m/^-?\d+$/ ) {
+         $value = $self->arg( $argindex );
       }
       else {
-         $value = $self->arg( $argindex );
+         die "Unrecognised argument specification $argindex";
       }
 
       $named_args{$name} = $value;
