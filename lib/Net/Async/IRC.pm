@@ -482,12 +482,9 @@ sub on_message_001
 sub on_message_005
 {
    my $self = shift;
-   my ( $message ) = @_;
+   my ( $message, $hints ) = @_;
 
-   my ( undef, @isupport ) = $message->args;
-   pop @isupport; # Text message at the end
-
-   foreach ( @isupport ) {
+   foreach ( @{ $hints->{isupport} } ) {
       next unless m/^([A-Z]+)(?:=(.*))?$/;
       my ( $name, $value ) = ( $1, $2 );
 
