@@ -74,6 +74,7 @@ is_deeply( [ $msg->args ], [ "MyNick", "Welcome to IRC MyNick!me\@your.host" ], 
 is_deeply( $hints, { prefix_nick  => undef,
                      prefix_nick_folded => undef,
                      prefix_is_me => '',
+                     text         => "Welcome to IRC MyNick!me\@your.host",
                      handled      => 1 }, '$hints' );
 
 $S2->syswrite( ':Someone!theiruser@their.host PRIVMSG MyNick :Their message here' . $CRLF );

@@ -173,14 +173,33 @@ my %ARG_NAMES = (
    TOPIC   => { target_name => 0,
                 text        => 1 },
 
+   '001' => { text => 1 },          # WELCOME
+   '002' => { text => 1 },          # YOURHOST
+   '003' => { text => 1 },          # CREATED
+   '004' => { serverhost    => 1,
+              serverversion => 2,
+              usermodes     => 3,
+              channelmodes  => 4 }, # MYINFO
+   '005' => { isupport => "1..-2",
+              text     => -1 },     # ISUPPORT
+
+   301 => { target_name => 1,
+            away_nick   => 2,
+            text        => 3 }, # AWAY
+
+   372 => { text => 1 }, # MOTDSTART
+   375 => { text => 1 }, # MOTD
+   376 => { },           # ENDOFMOTD
+
    324 => { target_name => 1,
             modechars   => 2,
-            modeargs    => "3.." },
+            modeargs    => "3.." }, # CHANNELMODEIS
+   331 => { target_name => 1 },    # NOTOPIC
    332 => { target_name => 1,
-            text        => 2 },
+            text        => 2 },    # TOPIC
    353 => { target_name => 2,
-            names       => "3.." },
-   366 => { target_name => 1 },
+            names       => "3.." }, # NAMEREPLY
+   366 => { target_name => 1 },    # ENDOFNAMES
 );
 
 # Misc. named commands

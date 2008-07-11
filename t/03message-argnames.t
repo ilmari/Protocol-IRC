@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 10;
+use Test::More tests => 12;
 use Test::Exception;
 
 use Net::Async::IRC::Message;
@@ -41,6 +41,11 @@ test_argnames "PART",
    ":TheirNick!user\@server PART #somechannel :A leaving message",
    names => { target_name => 0, text => 1 },
    args  => { target_name => "#somechannel", text => "A leaving message" };
+
+test_argnames "005",
+   ":server 005 YourNick RED=red BLUE=blue :are supported by this server",
+   names => { isupport => "1..-2", text => -1 },
+   args  => { isupport => [qw( RED=red BLUE=blue )], text => "are supported by this server" };
 
 test_argnames "324",
    ":server 324 YourNick #somechannel +ntl 300",
