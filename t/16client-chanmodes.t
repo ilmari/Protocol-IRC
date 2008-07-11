@@ -82,7 +82,7 @@ is_deeply( $hints, { prefix_nick  => "Someone",
                      modechars    => "+i",
                      modeargs     => [ ],
                      modes        => [
-                        { type => 'bool', sense => 1, mode => "i", arg => undef },
+                        { type => 'bool', sense => 1, mode => "i" },
                      ],
                      handled      => 1 }, '$hints for +i' );
 
@@ -94,7 +94,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes,
-           [ { type => 'bool', sense => -1, mode => "i", arg => undef } ],
+           [ { type => 'bool', sense => -1, mode => "i" } ],
            '$modes for -i' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan +b *!bad@bad.host' . $CRLF );
@@ -105,7 +105,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes,
-           [ { type => 'list', sense => 1, mode => "b", arg => "*!bad\@bad.host" } ],
+           [ { type => 'list', sense => 1, mode => "b", value => "*!bad\@bad.host" } ],
            '$modes for +b ...' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan -b *!less@bad.host' . $CRLF );
@@ -116,7 +116,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes,
-           [ { type => 'list', sense => -1, mode => "b", arg => "*!less\@bad.host" }, ],
+           [ { type => 'list', sense => -1, mode => "b", value => "*!less\@bad.host" }, ],
            '$hints for -b ...' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan +o OpUser' . $CRLF );
@@ -127,7 +127,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes, 
-           [ { type => 'occupant', sense => 1, mode => "o", arg => "OpUser" } ],
+           [ { type => 'occupant', sense => 1, mode => "o", flag => '@', nick => "OpUser", nick_folded => "opuser" } ],
            '$modes[chanmode] for +o OpUser' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan -o OpUser' . $CRLF );
@@ -138,7 +138,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes, 
-           [ { type => 'occupant', sense => -1, mode => "o", arg => "OpUser" } ],
+           [ { type => 'occupant', sense => -1, mode => "o", flag => '@', nick => "OpUser", nick_folded => "opuser" } ],
            '$modes[chanmode] for -o OpUser' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan +k joinkey' . $CRLF );
@@ -149,7 +149,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes, 
-           [ { type => 'value', sense => 1, mode => "k", arg => "joinkey" } ],
+           [ { type => 'value', sense => 1, mode => "k", value => "joinkey" } ],
            '$modes[chanmode] for +k joinkey' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan -k joinkey' . $CRLF );
@@ -160,7 +160,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes, 
-           [ { type => 'value', sense => -1, mode => "k", arg => "joinkey" } ],
+           [ { type => 'value', sense => -1, mode => "k", value => "joinkey" } ],
            '$modes[chanmode] for -k joinkey' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan +l 30' . $CRLF );
@@ -171,7 +171,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes, 
-           [ { type => 'value', sense => 1, mode => "l", arg => "30" } ],
+           [ { type => 'value', sense => 1, mode => "l", value => "30" } ],
            '$modes[chanmode] for +l 30' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan -l' . $CRLF );
@@ -182,7 +182,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes, 
-           [ { type => 'value', sense => -1, mode => "l", arg => undef } ],
+           [ { type => 'value', sense => -1, mode => "l" } ],
            '$modes[chanmode] for -l' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan +shl HalfOp 123' . $CRLF );
@@ -193,9 +193,9 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes,
-           [ { type => 'bool',     sense => 1, mode => "s", arg => undef },
-             { type => 'occupant', sense => 1, mode => "h", arg => "HalfOp" },
-             { type => 'value',    sense => 1, mode => "l", arg => "123" } ],
+           [ { type => 'bool',     sense => 1, mode => "s" },
+             { type => 'occupant', sense => 1, mode => "h", flag => '%', nick => "HalfOp", nick_folded => "halfop" },
+             { type => 'value',    sense => 1, mode => "l", value => "123" } ],
            '$modes[chanmode] for +shl HalfOp 123' );
 
 $S2->syswrite( ':Someone!theiruser@their.host MODE #chan -lh+o HalfOp FullOp' . $CRLF );
@@ -206,7 +206,7 @@ wait_for { @messages };
 $modes = $hints->{modes};
 
 is_deeply( $modes,
-           [ { type => 'value',    sense => -1, mode => "l", arg => undef },
-             { type => 'occupant', sense => -1, mode => "h", arg => "HalfOp" },
-             { type => 'occupant', sense =>  1, mode => "o", arg => "FullOp" } ],
+           [ { type => 'value',    sense => -1, mode => "l" },
+             { type => 'occupant', sense => -1, mode => "h", flag => '%', nick => "HalfOp", nick_folded => "halfop", },
+             { type => 'occupant', sense =>  1, mode => "o", flag => '@', nick => "FullOp", nick_folded => "fullop" } ],
            '$modes[chanmode] for -lh+o HalfOp FullOp' );

@@ -293,28 +293,33 @@ sub prepare_hints_channelmode
       $sense =  1, next if $modechar eq "+";
       $sense = -1, next if $modechar eq "-";
 
-      my $type;
       my $hasarg;
 
+      my $mode = {
+         mode  => $modechar,
+         sense => $sense,
+      };
+
       if( index( $listmodes, $modechar ) > -1 ) {
-         $type = 'list';
-         $hasarg = ( $sense != 0 );
+         $mode->{type} = 'list';
+         $mode->{value} = shift @modeargs if ( $sense != 0 );
       }
       elsif( index( $argmodes, $modechar ) > -1 ) {
-         $type = 'value';
-         $hasarg = ( $sense != 0 );
+         $mode->{type} = 'value';
+         $mode->{value} = shift @modeargs if ( $sense != 0 );
       }
       elsif( index( $argsetmodes, $modechar ) > -1 ) {
-         $type = 'value';
-         $hasarg = ( $sense > 0 );
+         $mode->{type} = 'value';
+         $mode->{value} = shift @modeargs if ( $sense > 0 );
       }
       elsif( index( $boolmodes, $modechar ) > -1 ) {
-         $type = 'bool';
-         $hasarg = 0;
+         $mode->{type} = 'bool';
       }
-      elsif( $self->prefix_mode2flag( $modechar ) ) {
-         $type = 'occupant';
-         $hasarg = ( $sense != 0 );
+      elsif( my $flag = $self->prefix_mode2flag( $modechar ) ) {
+         $mode->{type} = 'occupant';
+         $mode->{flag} = $flag;
+         $mode->{nick} = shift @modeargs if ( $sense != 0 );
+         $mode->{nick_folded} = $self->casefold_name( $mode->{nick} );
       }
       else {
          # TODO: Err... not recognised ... what do I do?
@@ -322,12 +327,7 @@ sub prepare_hints_channelmode
 
       # TODO: Consider a per-mode event here...
 
-      push @modes, {
-         type  => $type,
-         sense => $sense,
-         mode  => $modechar,
-         arg   => $hasarg ? shift @modeargs : undef,
-      };
+      push @modes, $mode;
    }
 
    $hints->{modes} = \@modes;
