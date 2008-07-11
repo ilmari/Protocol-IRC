@@ -93,6 +93,7 @@ sub new
    $self->{on_ping_timeout} = $args{on_ping_timeout};
    $self->{on_pong_reply}   = $args{on_pong_reply};
 
+   $self->{server_info} = {};
    $self->{isupport} = {};
 
    # Some initial defaults for isupport-derived values
@@ -479,6 +480,17 @@ sub on_message_001
    return 0;
 }
 
+sub on_message_004
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   @{$self->{server_info}}{qw( host version usermodes channelmodes )} =
+      @{$hints}{qw( serverhost serverversion usermodes channelmodes )};
+
+   return 0;
+}
+
 sub on_message_005
 {
    my $self = shift;
@@ -586,6 +598,14 @@ sub is_nick_me
 }
 
 # ISUPPORT and related
+
+sub server_info
+{
+   my $self = shift;
+   my ( $key ) = @_;
+
+   return $self->{server_info}{$key};
+}
 
 sub isupport
 {

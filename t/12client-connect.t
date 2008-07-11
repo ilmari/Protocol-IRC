@@ -5,7 +5,7 @@ use strict;
 use IO::Async::Test;
 use IO::Async::Loop::IO_Poll;
 
-use Test::More tests => 4;
+use Test::More tests => 5;
 
 use IO::Socket::INET;
 
@@ -78,3 +78,11 @@ $newclient->syswrite( ":irc.example.com 001 MyNick :Welcome to IRC MyNick!defaul
 wait_for { $logged_in };
 
 ok( $logged_in, 'Client receives logged in event' );
+
+$newclient->syswrite( ":irc.example.com 002 MyNick :Your host is irc.example.com, running TestIRC$CRLF" );
+$newclient->syswrite( ":irc.example.com 003 MyNick :This server was created Fri Jul 11 2008 at 21:31:04 BST$CRLF" );
+$newclient->syswrite( ":irc.example.com 004 MyNick irc.example.com TestIRC iow lvhopsmntikr$CRLF" );
+
+wait_for { defined $irc->server_info( "channelmodes" ) };
+
+is( $irc->server_info( "channelmodes" ), "lvhopsmntikr", 'server_info channelmodes' );
