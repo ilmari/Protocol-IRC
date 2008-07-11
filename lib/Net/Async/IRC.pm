@@ -525,7 +525,7 @@ sub on_message_005
       }
    }
 
-   return 1;
+   return 0;
 }
 
 sub send_message
