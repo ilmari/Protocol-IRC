@@ -109,17 +109,7 @@ sub arg
 {
    my $self = shift;
    my ( $index ) = @_;
-   my @args = @{$self->{args}};
-
-   if( $index >= 0 && $index < scalar @args ) {
-      return $args[$index];
-   }
-   elsif( $index == -1 ) {
-      return $args[$#args];
-   }
-   else {
-      return undef;
-   }
+   return $self->{args}[$index];
 }
 
 sub args
