@@ -211,6 +211,11 @@ my %ARG_NAMES = (
    353 => { target_name => 2,
             names       => "3.." }, # NAMEREPLY
    366 => { target_name => 1 },    # ENDOFNAMES
+
+   441 => { user_nick   => 1,
+            target_name => 2 }, # ERR_USERNOTINCHANNEL
+   443 => { user_nick   => 1,
+            target_name => 2 }, # ERR_USERONCHANNEL
 );
 
 # Misc. named commands
@@ -231,10 +236,6 @@ $ARG_NAMES{$_} = { target_name => 1 } for qw(
    482
 );
 
-# 441 ERR_USERNOTINCHANNEL: <nick> <channel> so we'll target channel
-$ARG_NAMES{441} = { user_nick => 1, target_name => 2 };
-# 443 ERR_USERONCHANNEL: <nick> <channel> so we'll target channel
-$ARG_NAMES{443} = { user_nick => 1, target_name => 2 };
 
 # TODO: 472 ERR_UNKNOWNMODE: <char> :is unknown mode char to me for <channel>
 # How to parse this one??
