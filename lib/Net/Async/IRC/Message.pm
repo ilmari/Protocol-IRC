@@ -197,6 +197,17 @@ my %ARG_NAMES = (
    331 => { target_name => 1 },    # NOTOPIC
    332 => { target_name => 1,
             text        => 2 },    # TOPIC
+
+   352 => { target_name => 1,
+            user_ident  => 2,
+            user_host   => 3,
+            user_server => 4,
+            user_nick   => 5,
+            user_flags  => 6,
+            text        => 7, # really "hopcount realname" but can't parse text yet
+          }, # WHOREPLY
+   315 => { target_name => 1 }, # ENDOFWHO
+
    353 => { target_name => 2,
             names       => "3.." }, # NAMEREPLY
    366 => { target_name => 1 },    # ENDOFNAMES
@@ -213,7 +224,6 @@ $ARG_NAMES{$_} = { target_name => 1 } for qw(
    311 312 313 314 317 318 319 369
    331 341
    346 347 348 349 367 368
-   315
    401 402 403 404 405 406 408
    432 433 436 437
    442 444
