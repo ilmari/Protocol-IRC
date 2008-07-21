@@ -74,6 +74,8 @@ is_deeply( [ $msg->args ], [ "#chan", "+i" ],      '$msg->args for +i' );
 
 is_deeply( $hints, { prefix_nick  => "Someone",
                      prefix_nick_folded => "someone",
+                     prefix_user  => "theiruser",
+                     prefix_host  => "their.host",
                      prefix_is_me => '',
                      target_name  => "#chan",
                      target_name_folded => "#chan",

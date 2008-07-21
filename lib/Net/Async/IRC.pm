@@ -244,12 +244,14 @@ sub incoming_message
 
    my $command = $message->command;
 
-   my ( $prefix_nick, undef, undef ) = $message->prefix_split;
+   my ( $prefix_nick, $prefix_user, $prefix_host ) = $message->prefix_split;
 
    my $hints = {
       handled => 0,
 
       prefix_nick  => $prefix_nick,
+      prefix_user  => $prefix_user,
+      prefix_host  => $prefix_host,
       prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
    };
 
