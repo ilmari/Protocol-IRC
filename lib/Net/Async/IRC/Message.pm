@@ -242,9 +242,20 @@ $ARG_NAMES{$_} = { target_name => 1 } for qw(
 
 sub arg_names
 {
-   my $self = shift;
+   # Usage: Class->arg_names($command) or $self->arg_names()
+   my $command;
 
-   return $ARG_NAMES{$self->{command}};
+   if( ref $_[0] ) {
+      my $self = shift;
+      $command = $self->{command};
+   }
+   else {
+      my $class = shift; # ignore
+      ( $command ) = @_;
+      defined $command or croak 'Usage: '.__PACKAGE__.'->arg_names($command)';
+   }
+
+   return $ARG_NAMES{$command};
 }
 
 sub named_args
