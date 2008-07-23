@@ -29,8 +29,8 @@ test_argnames "PING",
 
 test_argnames "PRIVMSG",
    ":TheirNick!user\@server PRIVMSG YourNick :A message",
-   names => { target_name => 0, text => 1 },
-   args  => { target_name => "YourNick", text => "A message" };
+   names => { targets => 0, text => 1 },
+   args  => { targets => "YourNick", text => "A message" };
 
 test_argnames "MODE",
    ":TheirNick!user\@server MODE #somechannel +oo Some Friends",

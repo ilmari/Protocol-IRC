@@ -274,7 +274,9 @@ sub incoming_message
 
    if( defined( my $target_name = $hints->{target_name} ) ) {
       $hints->{target_is_me} = $self->is_nick_me( $target_name );
-      $hints->{target_type}  = ( $target_name =~ $self->{channame_re} ) ? "channel" : "user";
+
+      my $target_type = ( $target_name =~ $self->{channame_re} ) ? "channel" : "user";
+      $hints->{target_type} = $target_type;
    }
 
    my $prepare_method = "prepare_hints_$command";
@@ -439,7 +441,8 @@ sub _on_message_text
       is_notice => $is_notice,
    );
 
-   my $target = $hints->{target_name};
+   # TODO: In client->server messages this might be a comma-separated list
+   my $target = delete $hints{targets};
 
    my $restriction = "";
    while( $target =~ $self->{prefixmode_re} ) {
