@@ -209,7 +209,7 @@ my %ARG_NAMES = (
    315 => { target_name => 1 }, # ENDOFWHO
 
    353 => { target_name => 2,
-            names       => "3.." }, # NAMEREPLY
+            names       => 3 }, # NAMEREPLY
    366 => { target_name => 1 },    # ENDOFNAMES
 
    441 => { user_nick   => 1,
