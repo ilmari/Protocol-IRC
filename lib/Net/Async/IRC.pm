@@ -22,6 +22,8 @@ use constant STATE_CONNECTING  => 1; # Awaiting network connection
 use constant STATE_CONNECTED   => 2; # Socket connected
 use constant STATE_LOGGEDIN    => 3; # USER/NICK send, server confirmed login
 
+use Encode qw( find_encoding );
+
 BEGIN {
    if ( eval { Time::HiRes::time(); 1 } ) {
       Time::HiRes->import( qw( time ) );
@@ -105,6 +107,13 @@ sub new
 
    $self->{user}     = $args{user} || $ENV{LOGNAME} || getpwuid($>);
    $self->{realname} = $args{realname} || "Net::Async::IRC client $VERSION";
+
+   my $encoding = $args{encoding};
+   if( defined $encoding ) {
+      my $obj = find_encoding( $encoding );
+      defined $obj or croak "Cannot handle an encoding of '$encoding'";
+      $self->{encoder} = $obj;
+   }
 
    return $self;
 }
@@ -257,6 +266,10 @@ sub incoming_message
 
    if( my $named_args = $message->named_args ) {
       $hints->{$_} = $named_args->{$_} for keys %$named_args;
+   }
+
+   if( defined $hints->{text} and $self->{encoder} ) {
+      $hints->{text} = $self->{encoder}->decode( $hints->{text} );
    }
 
    if( defined( my $target_name = $hints->{target_name} ) ) {
@@ -550,6 +563,15 @@ sub send_message
    }
    else {
       my ( $command, $prefix, @args ) = @_;
+
+      if( my $encoder = $self->{encoder} ) {
+         my $argnames = Net::Async::IRC::Message->arg_names( $command );
+
+         if( defined( my $i = $argnames->{text} ) ) {
+            $args[$i] = $encoder->encode( $args[$i] );
+         }
+      }
+
       $message = Net::Async::IRC::Message->new( $command, $prefix, @args );
    }
 
