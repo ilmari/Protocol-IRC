@@ -211,6 +211,11 @@ my %ARG_NAMES = (
    353 => { target_name => 2,
             names       => 3 }, # NAMEREPLY
    366 => { target_name => 1 },    # ENDOFNAMES
+   367 => { target_name => 1,
+            mask        => 2,
+            by_nick     => 3,
+            timestamp   => 4 }, # BANLIST
+   368 => { target_name => 1 }, # ENDOFBANLIST
 
    441 => { user_nick   => 1,
             target_name => 2 }, # ERR_USERNOTINCHANNEL
@@ -228,7 +233,7 @@ $ARG_NAMES{$_} = { target_name => 1 } for qw(
    301
    311 312 313 314 317 318 319 369
    331 341
-   346 347 348 349 367 368
+   346 347 348 349
    401 402 403 404 405 406 408
    432 433 436 437
    442 444
