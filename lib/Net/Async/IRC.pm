@@ -100,7 +100,7 @@ sub new
 
    # Some initial defaults for isupport-derived values
    $self->{channame_re} = qr/^[#&]/;
-   $self->{prefixmode_re} = qr/^[\@+]/;
+   $self->{prefixflag_re} = qr/^[\@+]/;
    $self->{isupport}->{CHANMODES_LIST} = [qw( b k l imnpst )]; # TODO: ov
 
    $self->set_nick( $args{nick} );
@@ -445,7 +445,7 @@ sub _on_message_text
    my $target = delete $hints{targets};
 
    my $restriction = "";
-   while( $target =~ $self->{prefixmode_re} ) {
+   while( $target =~ $self->{prefixflag_re} ) {
       $restriction .= substr( $target, 0, 1, "" );
    }
 
@@ -530,7 +530,7 @@ sub on_message_005
          $self->{isupport}->{PREFIX_MODES} = $prefix_modes;
          $self->{isupport}->{PREFIX_FLAGS} = $prefix_flags;
 
-         $self->{prefixmode_re} = qr/^[$prefix_modes]/;
+         $self->{prefixflag_re} = qr/^[$prefix_flags]/;
 
          my %prefix_map;
          $prefix_map{substr $prefix_modes, $_, 1} = substr $prefix_flags, $_, 1 for ( 0 .. length($prefix_modes) - 1 );
