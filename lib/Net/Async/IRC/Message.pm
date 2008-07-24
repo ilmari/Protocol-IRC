@@ -173,9 +173,6 @@ my %ARG_NAMES = (
    TOPIC   => { target_name => 0,
                 text        => 1 },
 
-   '001' => { text => 1 },          # WELCOME
-   '002' => { text => 1 },          # YOURHOST
-   '003' => { text => 1 },          # CREATED
    '004' => { serverhost    => 1,
               serverversion => 2,
               usermodes     => 3,
@@ -187,16 +184,17 @@ my %ARG_NAMES = (
             away_nick   => 2,
             text        => 3 }, # AWAY
 
-   372 => { text => 1 }, # MOTDSTART
-   375 => { text => 1 }, # MOTD
-   376 => { },           # ENDOFMOTD
-
    324 => { target_name => 1,
             modechars   => 2,
             modeargs    => "3.." }, # CHANNELMODEIS
+   329 => { target_name => 1,
+            timestamp   => 2 },    # CHANNELCREATED - extension not in 2812
    331 => { target_name => 1 },    # NOTOPIC
    332 => { target_name => 1,
             text        => 2 },    # TOPIC
+   333 => { target_name => 1,
+            topic_nick  => 2,
+            timestamp   => 3, },   # TOPICSETBY - extension not in 2812
 
    352 => { target_name => 1,
             user_ident  => 2,
@@ -206,16 +204,13 @@ my %ARG_NAMES = (
             user_flags  => 6,
             text        => 7, # really "hopcount realname" but can't parse text yet
           }, # WHOREPLY
-   315 => { target_name => 1 }, # ENDOFWHO
 
    353 => { target_name => 2,
             names       => 3 }, # NAMEREPLY
-   366 => { target_name => 1 },    # ENDOFNAMES
    367 => { target_name => 1,
             mask        => 2,
             by_nick     => 3,
             timestamp   => 4 }, # BANLIST
-   368 => { target_name => 1 }, # ENDOFBANLIST
 
    441 => { user_nick   => 1,
             target_name => 2 }, # ERR_USERNOTINCHANNEL
@@ -230,15 +225,27 @@ $ARG_NAMES{$_} = { target_name => 0 } for qw(
 
 # Normal targeted numerics
 $ARG_NAMES{$_} = { target_name => 1 } for qw(
-   301
-   311 312 313 314 317 318 319 369
+   311 312 313 314 315 317 318 319 369
    331 341
    346 347 348 349
+   366 368
    401 402 403 404 405 406 408
    432 433 436 437
    442 444
    467 471 473 474 475 476 477 478
    482
+);
+
+# Untargeted numerics with nothing of interest
+$ARG_NAMES{$_} = { } for qw(
+   376
+);
+
+# Untargeted numerics with a simple text message
+$ARG_NAMES{$_} = { text => 1 } for qw(
+   001 002 003
+   305 306
+   372 375
 );
 
 
