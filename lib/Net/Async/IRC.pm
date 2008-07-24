@@ -369,6 +369,60 @@ sub prepare_hints_324 # RPL_CHANNELMODEIS
    $self->prepare_hints_channelmode( $message, $hints );
 }
 
+#################################
+# Methods for incremental lists #
+#################################
+
+sub build_list
+{
+   my $self = shift;
+   my ( $list, $target, $value ) = @_;
+
+   $target = "" if !defined $target;
+
+   push @{ $self->{buildlist}{$target}{$list} }, $value;
+}
+
+sub build_list_from_hints
+{
+   my $self = shift;
+   my ( $list, $hints, @keys ) = @_;
+
+   my %value;
+   @value{@keys} = @{$hints}{@keys};
+
+   $self->build_list( $list, $hints->{target_name_folded}, \%value );
+}
+
+sub pull_list
+{
+   my $self = shift;
+   my ( $list, $target ) = @_;
+
+   $target = "" if !defined $target;
+
+   return delete $self->{buildlist}{$target}{$list};
+}
+
+sub pull_list_and_invoke
+{
+   my $self = shift;
+   my ( $list, $message, $hints ) = @_;
+
+   my $values = $self->pull_list( $list, $hints->{target_name_folded} );
+
+   my %hints = (
+      %$hints,
+      synthesized => 1,
+      $list => $values,
+   );
+
+   $self->_invoke( "on_message_$list", $message, \%hints ) and $hints{handled} = 1;
+   $self->_invoke( "on_message", $list, $message, \%hints ) and $hints{handled} = 1;
+
+   return $hints{handled};
+}
+
 ############################
 # Message handling methods #
 ############################
@@ -553,6 +607,105 @@ sub on_message_005
    }
 
    return 0;
+}
+
+sub on_message_315 # RPL_ENDOFWHO
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   $self->pull_list_and_invoke( "who", $message, $hints );
+}
+
+sub on_message_352 # RPL_WHOREPLY
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   $self->build_list_from_hints( "who", $hints,
+      qw( user_ident user_host user_server user_nick user_nick_folded user_flags )
+   );
+   return 1;
+}
+
+sub on_message_353 # RPL_NAMES
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   my @names = split( m/ /, $hints->{names} );
+   $self->build_list( "names", $hints->{target_name_folded}, $_ ) foreach @names;
+
+   return 1;
+}
+
+sub on_message_366 # RPL_ENDOFNAMES
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   my $names = $self->pull_list( "names", $hints->{target_name_folded} );
+
+   my $re = qr/^($self->{prefixflag_re})?(.*)$/;
+
+   my %names;
+
+   foreach my $name ( @$names ) {
+      my ( $flag, $nick ) = $name =~ $re or next;
+
+      $flag ||= ''; # make sure it's defined
+
+      $names{ $self->casefold_name( $nick ) } = { nick => $nick, flag => $flag };
+   }
+
+   my %hints = (
+      %$hints,
+      synthesized => 1,
+      names => \%names,
+   );
+
+   $self->_invoke( "on_message_names", $message, \%hints ) and $hints{handled} = 1;
+   $self->_invoke( "on_message", "names", $message, \%hints ) and $hints{handled} = 1;
+
+   return $hints{handled};
+}
+
+sub on_message_367 # RPL_BANLIST
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   $self->build_list_from_hints( "bans", $hints,
+      qw( mask by_nick by_nick_folded timestamp )
+   );
+   return 1;
+}
+
+sub on_message_368 # RPL_ENDOFBANS
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   $self->pull_list_and_invoke( "bans", $message, $hints );
+}
+
+sub on_message_372 # RPL_MOTD
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   $self->build_list( "motd", undef, $hints->{text} );
+   return 1;
+}
+
+sub on_message_375 # RPL_MOTDSTART
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   $self->build_list( "motd", undef, $hints->{text} );
+   return 1;
+}
+
+sub on_message_376 # RPL_ENDOFMOTD
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   $self->pull_list_and_invoke( "motd", $message, $hints );
 }
 
 sub send_message
