@@ -31,7 +31,7 @@ sub test_line
 my $msg = Net::Async::IRC::Message->new( "command", "prefix", "arg1", "arg2" );
 
 ok( defined $msg, 'defined $msg' );
-ok( $msg->isa( "Net::Async::IRC::Message" ), '$msg isa Net::Async::IRC::Message' );
+isa_ok( $msg, "Net::Async::IRC::Message", '$msg isa Net::Async::IRC::Message' );
 
 is( $msg->command, "COMMAND", '$msg->command' );
 is( $msg->prefix,  "prefix",  '$msg->prefix' );
