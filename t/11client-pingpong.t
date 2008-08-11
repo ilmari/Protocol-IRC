@@ -7,7 +7,7 @@ use Test::More tests => 4;
 use Time::HiRes qw(); # Empty import, just there to let IO::Async and Net::Async::IRC use it
 
 use IO::Async::Test;
-use IO::Async::Loop::IO_Poll;
+use IO::Async::Loop;
 use IO::Async::Stream;
 
 use IO::Socket::UNIX;
@@ -17,7 +17,7 @@ use Net::Async::IRC;
 
 my $CRLF = "\x0d\x0a"; # because \r\n isn't portable
 
-my $loop = IO::Async::Loop::IO_Poll->new();
+my $loop = IO::Async::Loop->new();
 testing_loop( $loop );
 
 ( my $S1, my $S2 ) = IO::Socket::UNIX->socketpair( AF_UNIX, SOCK_STREAM, PF_UNSPEC ) or

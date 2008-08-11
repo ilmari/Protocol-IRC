@@ -3,7 +3,7 @@
 use strict;
 
 use IO::Async::Test;
-use IO::Async::Loop::IO_Poll;
+use IO::Async::Loop;
 
 use Test::More tests => 5;
 
@@ -13,7 +13,7 @@ use Net::Async::IRC;
 
 my $CRLF = "\x0d\x0a"; # because \r\n isn't portable
 
-my $loop = IO::Async::Loop::IO_Poll->new();
+my $loop = IO::Async::Loop->new();
 testing_loop( $loop );
 
 # Try connect()ing to a socket we've just created
