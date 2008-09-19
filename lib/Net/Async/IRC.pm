@@ -724,7 +724,7 @@ sub send_message
          my $argnames = Net::Async::IRC::Message->arg_names( $command );
 
          if( defined( my $i = $argnames->{text} ) ) {
-            $args[$i] = $encoder->encode( $args[$i] );
+            $args[$i] = $encoder->encode( $args[$i] ) if defined $args[$i];
          }
       }
 
