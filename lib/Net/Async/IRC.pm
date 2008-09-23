@@ -275,7 +275,7 @@ sub incoming_message
    if( defined( my $target_name = $hints->{target_name} ) ) {
       $hints->{target_is_me} = $self->is_nick_me( $target_name );
 
-      my $target_type = ( $target_name =~ $self->{channame_re} ) ? "channel" : "user";
+      my $target_type = $self->classify_name( $target_name );
       $hints->{target_type} = $target_type;
    }
 
@@ -506,15 +506,15 @@ sub _on_message_text
    $hints{target_name} = $target;
    $hints{target_name_folded} = $self->casefold_name( $target );
 
-   if( $target =~ $self->{channame_re} ) {
+   my $type = $hints{target_type} = $self->classify_name( $target );
+
+   if( $type eq "channel" ) {
       $hints{restriction} = $restriction;
-      $hints{target_type} = "channel";
       $hints{target_is_me} = '';
    }
-   else {
+   elsif( $type eq "user" ) {
       # TODO: user messages probably can't have restrictions. What to do
       # if we got one?
-      $hints{target_type} = "user";
       $hints{target_is_me} = $self->is_nick_me( $target );
    }
 
@@ -864,6 +864,15 @@ sub casefold_name
    $nick =~ tr/^/~/ unless $self->{casemap_1459_strict};
 
    return lc $nick;
+}
+
+sub classify_name
+{
+   my $self = shift;
+   my ( $name ) = @_;
+
+   return "channel" if $name =~ $self->{channame_re};
+   return "user"; # TODO: Perhaps we can be a bit stricter - only check for valid nick chars?
 }
 
 # Some state accessors
