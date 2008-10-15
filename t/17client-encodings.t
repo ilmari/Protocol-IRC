@@ -7,9 +7,6 @@ use IO::Async::Test;
 use IO::Async::Loop;
 use IO::Async::Stream;
 
-#DEBUG
-use Test::HexString;
-
 use Encode qw( encode_utf8 );
 
 use IO::Socket::UNIX;
@@ -95,5 +92,5 @@ $irc->send_message( "PRIVMSG", undef, "#arabic", "مرحبا العالم" );
 $serverstream = "";
 wait_for_stream { $serverstream =~ m/$CRLF/ } $S2 => $serverstream;
 
-is_hexstr( $serverstream, "PRIVMSG #arabic :$octets$CRLF",
+is( $serverstream, "PRIVMSG #arabic :$octets$CRLF",
                    "Server stream after sending PRIVMSG with encoding" );
