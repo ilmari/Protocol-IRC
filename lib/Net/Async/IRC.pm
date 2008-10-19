@@ -525,9 +525,11 @@ sub _on_message_text
       $hints{ctcp_verb} = $verb;
       $hints{ctcp_args} = $text;
 
-      $self->_invoke( "on_message_ctcp_$verb", $message, \%hints ) and $hints{handled} = 1;
-      $self->_invoke( "on_message_ctcp", $verb, $message, \%hints ) and $hints{handled} = 1;
-      $self->_invoke( "on_message", "ctcp $verb", $message, \%hints ) and $hints{handled} = 1;
+      my $ctcptype = $is_notice ? "ctcpreply" : "ctcp";
+
+      $self->_invoke( "on_message_${ctcptype}_$verb", $message, \%hints ) and $hints{handled} = 1;
+      $self->_invoke( "on_message_${ctcptype}", $verb, $message, \%hints ) and $hints{handled} = 1;
+      $self->_invoke( "on_message", "$ctcptype $verb", $message, \%hints ) and $hints{handled} = 1;
    }
    else {
       $hints{text} = $text;

@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 37;
+use Test::More tests => 44;
 use IO::Async::Test;
 use IO::Async::Loop;
 use IO::Async::Stream;
@@ -264,3 +264,46 @@ is_deeply( $hints, { synthesized  => 1,
                      ctcp_verb    => "ACTION",
                      ctcp_args    => "does something",
                      handled      => 1 }, '$hints[ctcp] for CTCP ACTION' );
+
+undef %messages;
+
+$S2->syswrite( ":Someone!theiruser\@their.host NOTICE MyNick :\001VERSION foo/1.2.3\001" . $CRLF );
+
+wait_for { keys %messages == 2 };
+
+is_deeply( [ sort keys %messages ], ["NOTICE", "ctcpreply VERSION"], 'keys %messages for CTCPREPLY VERSION' );
+
+( $msg, $hints ) = @{ $messages{NOTICE} };
+
+is( $msg->command, "NOTICE",                      '$msg[NOTICE]->command for CTCPREPLY VERSION' );
+is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[NOTICE]->prefix for CTCPREPLY VERSION' );
+
+is_deeply( $hints, { prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
+                     prefix_user  => "theiruser",
+                     prefix_host  => "their.host",
+                     prefix_is_me => '',
+                     targets      => "MyNick",
+                     text         => "\001VERSION foo/1.2.3\001",
+                     handled      => 1 }, '$hints[NOTICE] for CTCPREPLY VERSION' );
+
+( $msg, $hints ) = @{ $messages{"ctcpreply VERSION"} };
+
+is( $msg->command, "NOTICE",                      '$msg[ctcpreply]->command for CTCPREPLY VERSION' );
+is( $msg->prefix,  'Someone!theiruser@their.host', '$msg[ctcpreply]->prefix for CTCPREPLY VERSION' );
+
+is_deeply( $hints, { synthesized  => 1,
+                     prefix_nick  => "Someone",
+                     prefix_nick_folded => "someone",
+                     prefix_user  => "theiruser",
+                     prefix_host  => "their.host",
+                     prefix_is_me => '',
+                     target_name  => "MyNick",
+                     target_name_folded => "mynick",
+                     target_is_me => 1,
+                     target_type  => "user",
+                     is_notice    => 1,
+                     text         => "\001VERSION foo/1.2.3\001",
+                     ctcp_verb    => "VERSION",
+                     ctcp_args    => "foo/1.2.3",
+                     handled      => 1 }, '$hints[ctcpreply] for CTCPREPLY VERSION' );
