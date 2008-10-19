@@ -7,9 +7,6 @@ use IO::Async::Test;
 use IO::Async::Loop;
 use IO::Async::Stream;
 
-use IO::Socket::UNIX;
-use Socket qw( AF_UNIX SOCK_STREAM PF_UNSPEC );
-
 use Net::Async::IRC;
 
 my $CRLF = "\x0d\x0a"; # because \r\n isn't portable
@@ -17,8 +14,7 @@ my $CRLF = "\x0d\x0a"; # because \r\n isn't portable
 my $loop = IO::Async::Loop->new();
 testing_loop( $loop );
 
-( my $S1, my $S2 ) = IO::Socket::UNIX->socketpair( AF_UNIX, SOCK_STREAM, PF_UNSPEC ) or
-   die "Cannot create socket pair - $!";
+my ( $S1, $S2 ) = $loop->socketpair() or die "Cannot create socket pair - $!";
 
 my @messages;
 
