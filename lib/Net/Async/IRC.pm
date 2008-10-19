@@ -736,6 +736,22 @@ sub send_message
    $self->write( $message->stream_to_line . $CRLF );
 }
 
+sub send_ctcp
+{
+   my $self = shift;
+   my ( $prefix, $target, $verb, $argstr ) = @_;
+
+   $self->send_message( "PRIVMSG", undef, $target, "\001$verb $argstr\001" );
+}
+
+sub send_ctcpreply
+{
+   my $self = shift;
+   my ( $prefix, $target, $verb, $argstr ) = @_;
+
+   $self->send_message( "NOTICE", undef, $target, "\001$verb $argstr\001" );
+}
+
 sub _reset_pingtimer
 {
    my $self = shift;

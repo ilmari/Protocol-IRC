@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 44;
+use Test::More tests => 46;
 use IO::Async::Test;
 use IO::Async::Loop;
 use IO::Async::Stream;
@@ -267,6 +267,14 @@ is_deeply( $hints, { synthesized  => 1,
 
 undef %messages;
 
+$irc->send_ctcp( undef, "target", "ACTION", "replies" );
+
+$serverstream = "";
+
+wait_for_stream { $serverstream =~ m/$CRLF/ } $S2 => $serverstream;
+
+is( $serverstream, "PRIVMSG target :\001ACTION replies\001$CRLF", 'server stream after send_ctcp' );
+
 $S2->syswrite( ":Someone!theiruser\@their.host NOTICE MyNick :\001VERSION foo/1.2.3\001" . $CRLF );
 
 wait_for { keys %messages == 2 };
@@ -307,3 +315,13 @@ is_deeply( $hints, { synthesized  => 1,
                      ctcp_verb    => "VERSION",
                      ctcp_args    => "foo/1.2.3",
                      handled      => 1 }, '$hints[ctcpreply] for CTCPREPLY VERSION' );
+
+undef %messages;
+
+$irc->send_ctcpreply( undef, "target", "ACTION", "replies" );
+
+$serverstream = "";
+
+wait_for_stream { $serverstream =~ m/$CRLF/ } $S2 => $serverstream;
+
+is( $serverstream, "NOTICE target :\001ACTION replies\001$CRLF", 'server stream after send_ctcp' );
