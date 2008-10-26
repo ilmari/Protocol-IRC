@@ -181,8 +181,7 @@ my %ARG_NAMES = (
               text     => -1 },     # ISUPPORT
 
    301 => { target_name => 1,
-            away_nick   => 2,
-            text        => 3 }, # AWAY
+            text        => 2 }, # AWAY
 
    324 => { target_name => 1,
             modechars   => 2,
@@ -225,7 +224,7 @@ $ARG_NAMES{$_} = { target_name => 0 } for qw(
 
 # Normal targeted numerics
 $ARG_NAMES{$_} = { target_name => 1 } for qw(
-   311 312 313 314 315 317 318 319 369
+   307 311 312 313 314 315 317 318 319 369 387
    331 341
    346 347 348 349
    366 368
