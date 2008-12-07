@@ -751,6 +751,8 @@ sub send_message
 {
    my $self = shift;
 
+   $self->is_connected or croak "Cannot send message without being connected";
+
    my $message;
 
    if( @_ == 1 ) {
