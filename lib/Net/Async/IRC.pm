@@ -82,6 +82,8 @@ sub new
          }
 
          $on_closed->() if $on_closed;
+
+         $self->{state} = STATE_UNCONNECTED;
       },
    );
 
