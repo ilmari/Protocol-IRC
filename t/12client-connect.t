@@ -5,7 +5,7 @@ use strict;
 use IO::Async::Test;
 use IO::Async::Loop;
 
-use Test::More tests => 5;
+use Test::More tests => 10;
 
 use IO::Socket::INET;
 
@@ -33,6 +33,8 @@ $loop->add( $irc );
 
 my $connected = 0;
 
+ok( !$irc->is_connected, 'not $irc->is_connected' );
+
 $irc->connect(
    addr => [ AF_INET, SOCK_STREAM, 0, $addr ],
 
@@ -46,6 +48,9 @@ $irc->connect(
 wait_for { $connected };
 
 ok( $connected, 'Client connects to listening socket' );
+
+ok( $irc->is_connected, '$irc->is_connected' );
+ok( !$irc->is_loggedin, 'not $irc->is_loggedin' );
 
 my $newclient = $listensock->accept;
 
@@ -78,6 +83,8 @@ $newclient->syswrite( ":irc.example.com 001 MyNick :Welcome to IRC MyNick!defaul
 wait_for { $logged_in };
 
 ok( $logged_in, 'Client receives logged in event' );
+ok( $irc->is_connected, '$irc->is_connected' );
+ok( $irc->is_loggedin, '$irc->is_loggedin' );
 
 $newclient->syswrite( ":irc.example.com 002 MyNick :Your host is irc.example.com, running TestIRC$CRLF" );
 $newclient->syswrite( ":irc.example.com 003 MyNick :This server was created Fri Jul 11 2008 at 21:31:04 BST$CRLF" );

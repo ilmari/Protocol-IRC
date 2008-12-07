@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 10;
+use Test::More tests => 11;
 use IO::Async::Test;
 use IO::Async::Loop;
 use IO::Async::Stream;
@@ -27,6 +27,8 @@ my $irc = Net::Async::IRC->new(
 );
 
 ok( defined $irc, 'defined $irc' );
+
+ok( $irc->is_connected, '$irc->is_connected' );
 
 $loop->add( $irc );
 

@@ -128,6 +128,28 @@ sub set_handles
    $self->{state} = defined $self->read_handle ? STATE_CONNECTED : STATE_UNCONNECTED;
 }
 
+sub state
+{
+   my $self = shift;
+   return $self->{state};
+}
+
+# connected does not necessarily mean logged in
+sub is_connected
+{
+   my $self = shift;
+   my $state = $self->state;
+   return $state == STATE_CONNECTED ||
+          $state == STATE_LOGGEDIN;
+}
+
+sub is_loggedin
+{
+   my $self = shift;
+   my $state = $self->state;
+   return $state == STATE_LOGGEDIN;
+}
+
 # TODO: Most of this needs to be moved into an abstract Net::Async::Connection role
 sub connect
 {
