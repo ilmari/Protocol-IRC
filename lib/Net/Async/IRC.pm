@@ -160,15 +160,28 @@ sub connect
       },
 
       on_resolve_error => sub {
+         my ( $msg ) = @_;
+         chomp $msg;
+
          $self->{state} = STATE_UNCONNECTED;
 
-         $args{on_resolve_error} ? $args{on_resolve_error}->( @_ ) : $on_error->( "Cannot resolve - $_[0]" );
+         if( $args{on_resolve_error} ) {
+            $args{on_resolve_error}->( $msg );
+         }
+         else {
+            $on_error->( "Cannot resolve - $msg" );
+         }
       },
 
       on_connect_error => sub {
          $self->{state} = STATE_UNCONNECTED;
 
-         $args{on_connect_error} ? $args{on_connect_error}->( @_ ) : $on_error->( "Cannot connect" )
+         if( $args{on_connect_error} ) {
+            $args{on_connect_error}->( @_ );
+         }
+         else {
+            $on_error->( "Cannot connect" );
+         }
       },
    );
 }
