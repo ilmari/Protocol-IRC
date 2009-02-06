@@ -167,7 +167,7 @@ sub connect
 
    $self->{state} = STATE_CONNECTING;
 
-   $args{service}  ||= "ircd";
+   $args{service}  ||= "6667";
    $args{socktype} ||= SOCK_STREAM;
 
    $loop->connect(
