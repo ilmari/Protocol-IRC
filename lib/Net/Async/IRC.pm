@@ -63,7 +63,7 @@ sub new
 
    my $on_closed = delete $args{on_closed};
 
-   my $self = $class->SUPER::new(
+   return $class->SUPER::new(
       %args,
 
       on_closed => sub {
@@ -86,16 +86,14 @@ sub new
          $self->{state} = STATE_UNCONNECTED;
       },
    );
+}
 
-   $self->{state} = defined $self->read_handle ? STATE_CONNECTED : STATE_UNCONNECTED;
+sub _init
+{
+   my $self = shift;
 
-   $self->{$_} = $args{$_} for grep m/^on_message/, keys %args;
-
-   $self->{pingtime} = defined $args{pingtime} ? $args{pingtime} : 60;
-   $self->{pongtime} = defined $args{pongtime} ? $args{pongtime} : 10;
-
-   $self->{on_ping_timeout} = $args{on_ping_timeout};
-   $self->{on_pong_reply}   = $args{on_pong_reply};
+   $self->{pingtime} = 60;
+   $self->{pongtime} = 10;
 
    $self->{server_info} = {};
    $self->{isupport} = {};
@@ -104,26 +102,39 @@ sub new
    $self->{channame_re} = qr/^[#&]/;
    $self->{prefixflag_re} = qr/^[\@+]/;
    $self->{isupport}->{CHANMODES_LIST} = [qw( b k l imnpst )]; # TODO: ov
+}
 
-   $self->set_nick( $args{nick} );
+sub configure
+{
+   my $self = shift;
+   my %args = @_;
 
-   $self->{user}     = $args{user} || $ENV{LOGNAME} || getpwuid($>);
-   $self->{realname} = $args{realname} || "Net::Async::IRC client $VERSION";
+   $self->{$_} = delete $args{$_} for grep m/^on_message/, keys %args;
 
-   my $encoding = $args{encoding};
-   if( defined $encoding ) {
+   for (qw( pingtime pongtime on_ping_timeout on_pong_reply )) {
+      $self->{$_} = delete $args{$_} if exists $args{$_};
+   }
+
+   if( exists $args{nick} ) {
+      $self->set_nick( delete $args{nick} );
+   }
+
+   if( exists $args{user} ) {
+      $self->{user} = delete $args{user} || $ENV{LOGNAME} || getpwuid($>);
+   }
+
+   if( exists $args{realname} ) {
+      $self->{realname} = delete $args{realname} || "Net::Async::IRC client $VERSION";
+   }
+
+   if( exists $args{encoding} ) {
+      my $encoding = delete $args{encoding};
       my $obj = find_encoding( $encoding );
       defined $obj or croak "Cannot handle an encoding of '$encoding'";
       $self->{encoder} = $obj;
    }
 
-   return $self;
-}
-
-sub set_handles
-{
-   my $self = shift;
-   $self->SUPER::set_handles( @_ );
+   $self->SUPER::configure( %args );
 
    $self->{state} = defined $self->read_handle ? STATE_CONNECTED : STATE_UNCONNECTED;
 }
