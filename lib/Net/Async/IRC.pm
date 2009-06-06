@@ -111,7 +111,7 @@ sub configure
 
    $self->{$_} = delete $args{$_} for grep m/^on_message/, keys %args;
 
-   for (qw( pingtime pongtime on_ping_timeout on_pong_reply )) {
+   for (qw( pingtime pongtime on_ping_timeout on_pong_reply user realname )) {
       $self->{$_} = delete $args{$_} if exists $args{$_};
    }
 
@@ -119,12 +119,12 @@ sub configure
       $self->set_nick( delete $args{nick} );
    }
 
-   if( exists $args{user} ) {
-      $self->{user} = delete $args{user} || $ENV{LOGNAME} || getpwuid($>);
+   if( !defined $self->{user} ) {
+      $self->{user} = $ENV{LOGNAME} || getpwuid($>);
    }
 
-   if( exists $args{realname} ) {
-      $self->{realname} = delete $args{realname} || "Net::Async::IRC client $VERSION";
+   if( !defined $self->{realname} ) {
+      $self->{realname} = "Net::Async::IRC client $VERSION";
    }
 
    if( exists $args{encoding} ) {
