@@ -10,6 +10,7 @@ use strict;
 our $VERSION = '0.01';
 
 use Carp;
+our @CARP_NOT = qw( Net::Async::IRC );
 
 sub new_from_line
 {
