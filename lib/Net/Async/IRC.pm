@@ -309,6 +309,8 @@ sub incoming_message
       prefix_nick  => $prefix_nick,
       prefix_user  => $prefix_user,
       prefix_host  => $prefix_host,
+      # Most of the time this will be "nick", except for special messages from the server
+      prefix_name  => defined $prefix_nick ? $prefix_nick : $prefix_host,
       prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
    };
 
