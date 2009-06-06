@@ -52,13 +52,15 @@ sub new
    }
 
    foreach ( @args[0 .. $#args-1] ) { # Not the final
+      defined or croak "Argument must be defined";
       m/[ \t\x0d\x0a]/ and
          croak "Argument must not contain whitespace";
    }
 
-   exists $args[-1] and
-      $args[-1] =~ m/[\x0d\x0a]/ and
-         croak "Final argument must not contain a linefeed";
+   if( @args ) {
+      defined $args[-1] or croak "Final argument must be defined";
+      $args[-1] =~ m/[\x0d\x0a]/ and croak "Final argument must not contain a linefeed";
+   }
 
    my $self = {
       command => $command,

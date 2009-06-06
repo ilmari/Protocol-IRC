@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 40;
+use Test::More tests => 42;
 use Test::Exception;
 
 use Net::Async::IRC::Message;
@@ -102,6 +102,14 @@ throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, "foo\x0d\x{0d}bar"
            qr/^Final argument must not contain a linefeed/,
            'Final with linefeed fails' );
 
+throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, undef ) },
+           qr/^Final argument must be defined/,
+           'Final undef fails' );
+
 throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, "foo bar", "splot wibble" ) },
            qr/^Argument must not contain whitespace/,
            'Argument with whitespace fails' );
+
+throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, undef, "last" ) },
+           qr/^Argument must be defined/,
+           'Argument undef fails' );
