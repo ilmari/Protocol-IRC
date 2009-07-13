@@ -994,7 +994,7 @@ __END__
 
 =item *
 
-L<RFC 2812|http://tools.ietf.org/html/rfc2812> - Internet Relay Chat: Client Protocol
+L<http://tools.ietf.org/html/rfc2812> - Internet Relay Chat: Client Protocol
 
 =back
 
