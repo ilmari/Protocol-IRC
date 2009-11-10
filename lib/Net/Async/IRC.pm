@@ -18,6 +18,8 @@ use Socket qw( SOCK_STREAM );
 
 use Net::Async::IRC::Message;
 
+use IO::Async::Timer::Countdown;
+
 use constant STATE_UNCONNECTED => 0; # No network connection
 use constant STATE_CONNECTING  => 1; # Awaiting network connection
 use constant STATE_CONNECTED   => 2; # Socket connected
@@ -72,15 +74,8 @@ sub new
 
          my $loop = $self->get_loop;
 
-         if( defined $self->{pingtimer_id} ) {
-            $loop->cancel_timer( $self->{pingtimer_id} );
-            undef $self->{pingtimer_id};
-         }
-
-         if( defined $self->{pongtimer_id} ) {
-            $loop->cancel_timer( $self->{pongtimer_id} );
-            undef $self->{pongtimer_id};
-         }
+         $self->{pingtimer}->stop;
+         $self->{pongtimer}->stop;
 
          $on_closed->() if $on_closed;
 
@@ -93,8 +88,34 @@ sub _init
 {
    my $self = shift;
 
-   $self->{pingtime} = 60;
-   $self->{pongtime} = 10;
+   my $pingtime = 60;
+   my $pongtime = 10;
+
+   $self->{pingtimer} = IO::Async::Timer::Countdown->new(
+      delay => $pingtime,
+
+      on_expire => sub {
+         my $now = time();
+
+         $self->send_message( "PING", undef, "$now" );
+
+         $self->{ping_send_time} = $now;
+
+         $self->{pongtimer}->start;
+      },
+   );
+   $self->add_child( $self->{pingtimer} );
+
+   $self->{pingtimer}->start if defined $self->read_handle;
+
+   $self->{pongtimer} = IO::Async::Timer::Countdown->new(
+      delay => $pongtime,
+
+      on_expire => sub {
+         $self->{on_ping_timeout}->( $self ) if $self->{on_ping_timeout};
+      },
+   );
+   $self->add_child( $self->{pongtimer} );
 
    $self->{server_info} = {};
    $self->{isupport} = {};
@@ -112,8 +133,16 @@ sub configure
 
    $self->{$_} = delete $args{$_} for grep m/^on_message/, keys %args;
 
-   for (qw( pingtime pongtime on_ping_timeout on_pong_reply user realname )) {
+   for (qw( on_ping_timeout on_pong_reply user realname )) {
       $self->{$_} = delete $args{$_} if exists $args{$_};
+   }
+
+   if( exists $args{pingtime} ) {
+      $self->{pingtimer}->configure( delay => delete $args{pingtime} );
+   }
+
+   if( exists $args{pongtime} ) {
+      $self->{pongtimer}->configure( delay => delete $args{pongtime} );
    }
 
    if( exists $args{nick} ) {
@@ -137,7 +166,14 @@ sub configure
 
    $self->SUPER::configure( %args );
 
-   $self->{state} = defined $self->read_handle ? STATE_CONNECTED : STATE_UNCONNECTED;
+   if( defined $self->read_handle ) {
+      $self->{state} = STATE_CONNECTED;
+      $self->{pingtimer}->start if $self->{pingtimer} and $self->get_loop;
+   }
+   else {
+      $self->{state} = STATE_UNCONNECTED;
+      $self->{pingtimer}->stop if $self->{pingtimer} and $self->get_loop;
+   }
 }
 
 sub state
@@ -275,7 +311,9 @@ sub on_read
    if( $$buffref =~ s/^(.*)$CRLF// ) {
       my $message = Net::Async::IRC::Message->new_from_line( $1 );
 
-      $self->_reset_pingtimer;
+      my $pingtimer = $self->{pingtimer};
+
+      $pingtimer->is_running ? $pingtimer->reset : $pingtimer->start;
       $self->incoming_message( $message );
 
       return 1;
@@ -513,17 +551,14 @@ sub on_message_PONG
    my ( $message ) = @_;
 
    # Protect against spurious PONGs from the server
-   return 1 unless defined $self->{pongtimer_id};
+   return 1 unless $self->{pongtimer}->is_running;
 
    my $lag = time() - $self->{ping_send_time};
 
    $self->{current_lag} = $lag;
    $self->{on_pong_reply}->( $self, $lag ) if $self->{on_pong_reply};
 
-   my $loop = $self->get_loop;
-
-   $loop->cancel_timer( $self->{pongtimer_id} );
-   undef $self->{pongtimer_id};
+   $self->{pongtimer}->stop;
 
    return 1;
 }
@@ -803,41 +838,6 @@ sub send_ctcpreply
    my ( $prefix, $target, $verb, $argstr ) = @_;
 
    $self->send_message( "NOTICE", undef, $target, "\001$verb $argstr\001" );
-}
-
-sub _reset_pingtimer
-{
-   my $self = shift;
-
-   my $loop = $self->get_loop or return;
-
-   # Manage the PING timer
-   if( defined $self->{pingtimer_id} ) {
-      $loop->cancel_timer( $self->{pingtimer_id} );
-   }
-
-   $self->{pingtimer_id} = $loop->enqueue_timer(
-      delay => $self->{pingtime},
-
-      code  => sub {
-         undef $self->{pingtimer_id};
-
-         my $now = time();
-
-         $self->send_message( "PING", undef, "$now" );
-
-         $self->{ping_send_time} = $now;
-
-         $self->{pongtimer_id} = $loop->enqueue_timer(
-            delay => $self->{pongtime},
-            code  => sub {
-               undef $self->{pongtimer_id};
-
-               $self->{on_ping_timeout}->( $self ) if defined $self->{on_ping_timeout};
-            },
-         );
-      },
-   );
 }
 
 sub is_nick_me
