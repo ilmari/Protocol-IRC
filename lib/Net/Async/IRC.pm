@@ -15,6 +15,7 @@ use base qw( IO::Async::Stream );
 use Carp;
 
 use Socket qw( SOCK_STREAM );
+use Time::HiRes qw( time );
 
 use Net::Async::IRC::Message;
 
@@ -26,12 +27,6 @@ use constant STATE_CONNECTED   => 2; # Socket connected
 use constant STATE_LOGGEDIN    => 3; # USER/NICK send, server confirmed login
 
 use Encode qw( find_encoding );
-
-BEGIN {
-   if ( eval { Time::HiRes::time(); 1 } ) {
-      Time::HiRes->import( qw( time ) );
-   }
-}
 
 my $CRLF = "\x0d\x0a"; # More portable than \r\n
 
