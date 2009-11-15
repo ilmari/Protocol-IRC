@@ -23,7 +23,7 @@ C<Net::Async::IRC::Message> - encapsulates a single IRC message
 
 =head1 DESCRIPTION
 
-An objects in this class represents a single IRC message, either received from
+An object in this class represents a single IRC message, either received from
 or to be sent to the server. These objects are immutable once constructed, but
 provide a variety of methods to access the contained information.
 
