@@ -13,6 +13,34 @@ our $VERSION = '0.01';
 use Carp;
 our @CARP_NOT = qw( Net::Async::IRC );
 
+=head1 NAME
+
+C<Net::Async::IRC::Message> - encapsulates a single IRC message
+
+=head1 SYNOPSIS
+
+ TODO
+
+=head1 DESCRIPTION
+
+An objects in this class represents a single IRC message, either received from
+or to be sent to the server. These objects are immutable once constructed, but
+provide a variety of methods to access the contained information.
+
+=cut
+
+=head1 CONSTRUCTOR
+
+=cut
+
+=head2 $message = Net::Async::IRC::Message->new_from_line( $line )
+
+Returns a new C<Net::Async::IRC::Message> object, constructed by parsing the
+given IRC line. Most typically used to create a new object to represent a
+message received from the server.
+
+=cut
+
 sub new_from_line
 {
    my $class = shift;
@@ -32,6 +60,14 @@ sub new_from_line
 
    return $class->new( $command, $prefix, @args );
 }
+
+=head2 $message = Net::Async::IRC::Message->new( $command, $prefix, @args )
+
+Returns a new C<Net::Async::IRC::Message> object, intialised from the given
+components. Most typically used to create a new object to send to the server
+using C<stream_to_line>.
+
+=cut
 
 sub new
 {
@@ -73,8 +109,21 @@ sub new
    return bless $self, $class;
 }
 
-use overload '""' => "STRING";
+=head1 METHODS
 
+=cut
+
+=head2 $str = $message->STRING
+
+=head2 $str = "$message"
+
+Returns a string representing the message, suitable for use in a debugging
+message or similar. I<Note>: This is not the same as the IRC wire form, to
+send to the IRC server; for that see C<stream_to_line>.
+
+=cut
+
+use overload '""' => "STRING";
 sub STRING
 {
    my $self = shift;
@@ -85,17 +134,38 @@ sub STRING
                     "args=(" . join( ",", @{ $self->{args} } ) . ")]";
 }
 
+=head2 $command = $message->command
+
+Returns the command name stored in the message object.
+
+=cut
+
 sub command
 {
    my $self = shift;
    return $self->{command};
 }
 
+=head2 $prefix = $message->prefix
+
+Returns the line prefix stored in the object, or the empty string if one was
+not supplied.
+
+=cut
+
 sub prefix
 {
    my $self = shift;
    return defined $self->{prefix} ? $self->{prefix} : "";
 }
+
+=head2 ( $nick, $ident, $host ) = $message->prefix_split
+
+Splits the prefix into its nick, ident and host components. If the prefix
+contains only a hostname (such as the server name), the first two components
+will be returned as C<undef>.
+
+=cut
 
 sub prefix_split
 {
@@ -109,6 +179,13 @@ sub prefix_split
    return ( undef, undef, $prefix );
 }
 
+=head2 $arg = $message->arg( $index )
+
+Returns the argument at the given index. Uses normal perl array indexing, so
+negative indices work as expected.
+
+=cut
+
 sub arg
 {
    my $self = shift;
@@ -116,11 +193,23 @@ sub arg
    return $self->{args}[$index];
 }
 
+=head2 @args = $message->args
+
+Returns a list containing all the message arguments.
+
+=cut
+
 sub args
 {
    my $self = shift;
    return @{$self->{args}};
 }
+
+=head2 $line = $message->stream_to_line
+
+Returns a string suitable for sending the message to the IRC server.
+
+=cut
 
 sub stream_to_line
 {
@@ -255,6 +344,12 @@ $ARG_NAMES{$_} = { text => 1 } for qw(
 # TODO: 472 ERR_UNKNOWNMODE: <char> :is unknown mode char to me for <channel>
 # How to parse this one??
 
+=head2 $names = $message->arg_names
+
+TODO
+
+=cut
+
 sub arg_names
 {
    # Usage: Class->arg_names($command) or $self->arg_names()
@@ -272,6 +367,12 @@ sub arg_names
 
    return $ARG_NAMES{$command};
 }
+
+=head2 $args = $message->named_args
+
+TODO
+
+=cut
 
 sub named_args
 {
@@ -313,3 +414,9 @@ sub named_args
 
 # Keep perl happy; keep Britain tidy
 1;
+
+__END__
+
+=head1 AUTHOR
+
+Paul Evans <leonerd@leonerd.org.uk>
