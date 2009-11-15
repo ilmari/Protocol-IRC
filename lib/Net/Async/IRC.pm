@@ -45,7 +45,13 @@ C<Net::Async::IRC> - Asynchronous IRC client
 
 =head1 DESCRIPTION
 
-TODO
+This object class implements an asynchronous IRC client, for use in programs
+based on L<IO::Async>.
+
+This documentation is very much still in a state of TODO; it is being released
+now in the hope it is currently somewhat useful, with the intention of putting
+more work into both the code and its documentation at some near point in the
+future.
 
 =cut
 
@@ -55,7 +61,10 @@ TODO
 
 =head2 $irc = Net::Async::IRC->new( %args )
 
-TODO
+Returns a new instance of a C<Net::Async::IRC> object. This object represents
+a connection to a single IRC server. As it is a subclass of
+C<IO::Async::Stream> its constructor takes any arguments for that class, in
+addition to the parameters named below.
 
 =cut
 
@@ -126,6 +135,76 @@ sub _init
    $self->{isupport}->{CHANMODES_LIST} = [qw( b k l imnpst )]; # TODO: ov
 }
 
+=head1 PARAMETERS
+
+The following named parameters may be passed to C<new> or C<configure>:
+
+=over 8
+
+=item on_message => CODE
+
+A CODE reference to the generic message handler; see C<MESSAGE HANDLING>
+below.
+
+=item on_message_* => CODE
+
+Any parameter whose name starts with C<on_message_> can be installed as a
+handler for a specific message, in preference to the generic handler. See
+C<MESSAGE HANDLING>.
+
+=item pingtime => NUM
+
+Amount of quiet time, in seconds, after a message is received from the server,
+until a C<PING> will be sent to check it is still alive.
+
+=item pongtime => NUM
+
+Timeout, in seconds, after sending a C<PING> message, to wait for a C<PONG>
+response.
+
+=item on_ping_timeout => CODE
+
+A CODE reference to invoke if the server fails to respond to a C<PING> message
+within the given timeout.
+
+ $on_ping_timeout->( $irc )
+
+=item on_pong_reply => CODE
+
+A CODE reference to invoke when the server successfully sends a C<PONG> in
+response of a C<PING> message.
+
+ $on_pong_reply->( $irc, $lag )
+
+Where C<$lag> is the response time in (fractional) seconds.
+
+=item nick => STRING
+
+=item user => STRING
+
+=item realname => STRING
+
+Connection details. See also C<connect>, C<login>.
+
+If C<user> is not supplied, it will default to either C<$ENV{LOGNAME}> or the
+current user's name as supplied by C<getpwuid()>.
+
+If unconnected, changing these properties will set the default values to use
+when logging in.
+
+If logged in, changing the C<nick> property is equivalent to calling
+C<set_nick>. Changing the other properties will not take effect until the next
+login.
+
+=item encoding => STRING
+
+If supplied, sets an encoding to use to encode outgoing messages and decode
+incoming messages.
+
+=back
+
+=cut
+
 sub configure
 {
    my $self = shift;
@@ -176,13 +255,24 @@ sub configure
    }
 }
 
+=head1 METHODS
+
+=cut
+
 sub state
 {
    my $self = shift;
    return $self->{state};
 }
 
-# connected does not necessarily mean logged in
+=head2 $connect = $irc->is_connected
+
+Returns true if a connection to the server is established. Note that even
+after a successful connection, the server may not yet logged in to. See also
+the C<is_loggedin> method.
+
+=cut
+
 sub is_connected
 {
    my $self = shift;
@@ -191,12 +281,54 @@ sub is_connected
           $state == STATE_LOGGEDIN;
 }
 
+=head2 $loggedin = $irc->is_loggedin
+
+Returns true if the server has been logged in to.
+
+=cut
+
 sub is_loggedin
 {
    my $self = shift;
    my $state = $self->state;
    return $state == STATE_LOGGEDIN;
 }
+
+=head2 $irc->connect( %args )
+
+Connects to the IRC server. This method does not perform the complete IRC
+login sequence; for that see instead the C<login> method.
+
+=over 8
+
+=item host => STRING
+
+Hostname of the IRC server.
+
+=item service => STRING or NUMBER
+
+Optional. Port number or service name of the IRC server. Defaults to 6667.
+
+=item on_connected => CODE
+
+Continuation to invoke once the connection has been established. Usually used
+by the C<login> method to perform the actual login sequence.
+
+ $on_connected->( $irc )
+
+=item on_error => CODE
+
+Continuation to invoke in the case of an error preventing the connection from
+taking place.
+
+ $on_error->( $errormsg )
+
+=back
+
+Any other arguments are passed into the underlying C<IO::Async::Loop>
+C<connect> method.
+
+=cut
 
 # TODO: Most of this needs to be moved into an abstract Net::Async::Connection role
 sub connect
@@ -256,6 +388,40 @@ sub connect
    );
 }
 
+=head2 $irc->login( %args )
+
+Logs in to the IRC network, connecting first using the C<connect> method if
+required. Takes the following named arguments:
+
+=over 8
+
+=item nick => STRING
+
+=item user => STRING
+
+=item realname => STRING
+
+IRC connection details. Defaults can be set with the C<new> or C<configure>
+methods.
+
+=item pass => STRING
+
+Server password to connect with.
+
+=item on_login => CODE
+
+A continuation to invoke once login is successful.
+
+ $on_login->( $irc )
+
+=back
+
+Any other arguments that are passed, are forwarded to the C<connect> method if
+it is required; i.e. if C<login> is invoked when not yet connected to the
+server.
+
+=cut
+
 sub login
 {
    my $self = shift;
@@ -303,6 +469,7 @@ sub login
    }
 }
 
+# for IO::Async::Stream
 sub on_read
 {
    my $self = shift;
@@ -321,6 +488,321 @@ sub on_read
 
    return 0;
 }
+
+=head2 $irc->send_message( $message )
+
+Sends a message to the server from the given C<Net::Async::IRC::Message>
+object.
+
+=head2 $irc->send_message( $command, $prefix, @args )
+
+Sends a message to the server directly from the given arguments.
+
+=cut
+
+sub send_message
+{
+   my $self = shift;
+
+   $self->is_connected or croak "Cannot send message without being connected";
+
+   my $message;
+
+   if( @_ == 1 ) {
+      $message = shift;
+   }
+   else {
+      my ( $command, $prefix, @args ) = @_;
+
+      if( my $encoder = $self->{encoder} ) {
+         my $argnames = Net::Async::IRC::Message->arg_names( $command );
+
+         if( defined( my $i = $argnames->{text} ) ) {
+            $args[$i] = $encoder->encode( $args[$i] ) if defined $args[$i];
+         }
+      }
+
+      $message = Net::Async::IRC::Message->new( $command, $prefix, @args );
+   }
+
+   $self->write( $message->stream_to_line . $CRLF );
+}
+
+=head2 $irc->send_ctcp( $prefix, $target, $verb, $argstr )
+
+Shortcut to sending a CTCP message. Sends a PRIVMSG to the given target,
+containing the given verb and argument string.
+
+=cut
+
+sub send_ctcp
+{
+   my $self = shift;
+   my ( $prefix, $target, $verb, $argstr ) = @_;
+
+   $self->send_message( "PRIVMSG", undef, $target, "\001$verb $argstr\001" );
+}
+
+=head2 $irc->send_ctcprely( $prefix, $target, $verb, $argstr )
+
+Shortcut to sending a CTCP reply. As C<send_ctcp> but using a NOTICE instead.
+
+=cut
+
+sub send_ctcpreply
+{
+   my $self = shift;
+   my ( $prefix, $target, $verb, $argstr ) = @_;
+
+   $self->send_message( "NOTICE", undef, $target, "\001$verb $argstr\001" );
+}
+
+=head2 $me = $irc->is_nick_me( $nick )
+
+Returns true if the given nick refers to that in use by the connection.
+
+=cut
+
+sub is_nick_me
+{
+   my $self = shift;
+   my ( $nick ) = @_;
+
+   return $self->casefold_name( $nick ) eq $self->{nick_folded};
+}
+
+# ISUPPORT and related
+
+=head2 $info = $irc->server_info( $key )
+
+Returns an item of information from the server's C<004> line. C<$key> should
+one of
+
+=over 8
+
+=item * host
+
+=item * version
+
+=item * usermodes
+
+=item * channelmodes
+
+=back
+
+=cut
+
+sub server_info
+{
+   my $self = shift;
+   my ( $key ) = @_;
+
+   return $self->{server_info}{$key};
+}
+
+=head2 $value = $irc->isupport( $key )
+
+Returns an item of information from the server's C<005 ISUPPORT> lines.
+Traditionally IRC servers use all-capital names for keys.
+
+=cut
+
+sub isupport
+{
+   my $self = shift;
+   my ( $flag ) = @_;
+
+   return exists $self->{isupport}->{$flag} ? 
+                 $self->{isupport}->{$flag} : undef;
+}
+
+=head2 $cmp = $irc->cmp_prefix_flags( $lhs, $rhs )
+
+Compares two channel occupant prefix flags, and returns a signed integer to
+indicate which of them has higher priviledge, according to the server's
+ISUPPORT declaration. Suitable for use in a C<sort()> function or similar.
+
+=cut
+
+sub cmp_prefix_flags
+{
+   my $self = shift;
+   my ( $lhs, $rhs ) = @_;
+
+   return undef unless defined $lhs and defined $rhs;
+
+   # As a special case, compare emptystring as being lower than voice
+   return 0 if $lhs eq "" and $rhs eq "";
+   return 1 if $rhs eq "";
+   return -1 if $lhs eq "";
+
+   my $PREFIX_FLAGS = $self->isupport( "PREFIX_FLAGS" );
+
+   ( my $lhs_index = index $PREFIX_FLAGS, $lhs ) > -1 or return undef;
+   ( my $rhs_index = index $PREFIX_FLAGS, $rhs ) > -1 or return undef;
+
+   # IRC puts these in greatest-first, so we need to swap the ordering here
+   return $rhs_index <=> $lhs_index;
+}
+
+=head2 $cmp = $irc->cmp_prefix_modes( $lhs, $rhs )
+
+Similar to C<cmp_prefix_flags>, but compares channel occupant C<MODE> command
+flags.
+
+=cut
+
+sub cmp_prefix_modes
+{
+   my $self = shift;
+   my ( $lhs, $rhs ) = @_;
+
+   return undef unless defined $lhs and defined $rhs;
+
+   my $PREFIX_MODES = $self->isupport( "PREFIX_MODES" );
+
+   ( my $lhs_index = index $PREFIX_MODES, $lhs ) > -1 or return undef;
+   ( my $rhs_index = index $PREFIX_MODES, $rhs ) > -1 or return undef;
+
+   # IRC puts these in greatest-first, so we need to swap the ordering here
+   return $rhs_index <=> $lhs_index;
+}
+
+=head2 $flag = $irc->prefix_mode2flag( $mode )
+
+Converts a channel occupant C<MODE> flag (such as C<o>) into a name prefix
+flag (such as C<@>).
+
+=cut
+
+sub prefix_mode2flag
+{
+   my $self = shift;
+   my ( $mode ) = @_;
+
+   return $self->{isupport}->{PREFIX_MAP_M2F}->{$mode};
+}
+
+=head2 $mode = $irc->prefix_flag2mode( $flag )
+
+The inverse of C<prefix_mode2flag>.
+
+=cut
+
+sub prefix_flag2mode
+{
+   my $self = shift;
+   my ( $flag ) = @_;
+
+   return $self->{isupport}->{PREFIX_MAP_F2M}->{$flag};
+}
+
+=head2 $name_folded = $irc->casefold_name( $name )
+
+Returns the C<$name>, folded in case according to the server's C<CASEMAPPING>
+C<ISUPPORT>. Such a folded name will compare using C<eq> according to whether the
+server would consider it the same name.
+
+Useful for use in hash keys or similar.
+
+=cut
+
+sub casefold_name
+{
+   my $self = shift;
+   my ( $nick ) = @_;
+
+   return undef unless defined $nick;
+
+   # Squash the 'capital' [\] into lowercase {|}
+   $nick =~ tr/[\\]/{|}/ if $self->{casemap_1459};
+
+   # Most RFC 1459 implementations also squash ^ to ~, even though the RFC
+   # didn't mention it
+   $nick =~ tr/^/~/ unless $self->{casemap_1459_strict};
+
+   return lc $nick;
+}
+
+=head2 $classification = $irc->classify_name( $name )
+
+Returns C<channel> if the given name matches the pattern of names allowed for
+channels according to the server's C<CHANTYPES> C<ISUPPORT>. Returns C<user>
+if not.
+
+=cut
+
+sub classify_name
+{
+   my $self = shift;
+   my ( $name ) = @_;
+
+   return "channel" if $name =~ $self->{channame_re};
+   return "user"; # TODO: Perhaps we can be a bit stricter - only check for valid nick chars?
+}
+
+=head2 $nick = $irc->nick
+
+Returns the current nick in use by the connection.
+
+=cut
+
+sub nick
+{
+   my $self = shift;
+   return $self->{nick};
+}
+
+=head2 $nick_folded = $irc->nick_folded
+
+Returns the current nick in use by the connection, folded by C<casefold_name>
+for convenience.
+
+=cut
+
+sub nick_folded
+{
+   my $self = shift;
+   return $self->{nick_folded};
+}
+
+# internal
+sub set_nick
+{
+   my $self = shift;
+   ( $self->{nick} ) = @_;
+   $self->{nick_folded} = $self->casefold_name( $self->{nick} );
+}
+
+=head2 $irc->change_nick( $newnick )
+
+Requests to change the nick. If unconnected, the change happens immediately
+to the stored defaults. If logged in, sends a C<NICK> command to the server,
+which may suceed or fail at a later point.
+
+=cut
+
+sub change_nick
+{
+   my $self = shift;
+   my ( $newnick ) = @_;
+
+   if( $self->{state} == STATE_UNCONNECTED or $self->{state} == STATE_CONNECTING ) {
+      $self->set_nick( $newnick );
+   }
+   elsif( $self->{state} == STATE_CONNECTED or $self->{state} == STATE_LOGGEDIN ) {
+      $self->send_message( "NICK", undef, $newnick );
+   }
+   else {
+      croak "Cannot change_nick - bad state $self->{state}";
+   }
+}
+
+=head1 MESSAGE HANDLING
+
+TODO
+
+=cut
 
 # Try to run the named method, returning undef if the method doesn't exist
 sub _invoke
@@ -794,194 +1276,6 @@ sub on_message_376 # RPL_ENDOFMOTD
    my $self = shift;
    my ( $message, $hints ) = @_;
    $self->pull_list_and_invoke( "motd", $message, $hints );
-}
-
-sub send_message
-{
-   my $self = shift;
-
-   $self->is_connected or croak "Cannot send message without being connected";
-
-   my $message;
-
-   if( @_ == 1 ) {
-      $message = shift;
-   }
-   else {
-      my ( $command, $prefix, @args ) = @_;
-
-      if( my $encoder = $self->{encoder} ) {
-         my $argnames = Net::Async::IRC::Message->arg_names( $command );
-
-         if( defined( my $i = $argnames->{text} ) ) {
-            $args[$i] = $encoder->encode( $args[$i] ) if defined $args[$i];
-         }
-      }
-
-      $message = Net::Async::IRC::Message->new( $command, $prefix, @args );
-   }
-
-   $self->write( $message->stream_to_line . $CRLF );
-}
-
-sub send_ctcp
-{
-   my $self = shift;
-   my ( $prefix, $target, $verb, $argstr ) = @_;
-
-   $self->send_message( "PRIVMSG", undef, $target, "\001$verb $argstr\001" );
-}
-
-sub send_ctcpreply
-{
-   my $self = shift;
-   my ( $prefix, $target, $verb, $argstr ) = @_;
-
-   $self->send_message( "NOTICE", undef, $target, "\001$verb $argstr\001" );
-}
-
-sub is_nick_me
-{
-   my $self = shift;
-   my ( $nick ) = @_;
-
-   return $self->casefold_name( $nick ) eq $self->{nick_folded};
-}
-
-# ISUPPORT and related
-
-sub server_info
-{
-   my $self = shift;
-   my ( $key ) = @_;
-
-   return $self->{server_info}{$key};
-}
-
-sub isupport
-{
-   my $self = shift;
-   my ( $flag ) = @_;
-
-   return exists $self->{isupport}->{$flag} ? 
-                 $self->{isupport}->{$flag} : undef;
-}
-
-sub cmp_prefix_flags
-{
-   my $self = shift;
-   my ( $lhs, $rhs ) = @_;
-
-   return undef unless defined $lhs and defined $rhs;
-
-   # As a special case, compare emptystring as being lower than voice
-   return 0 if $lhs eq "" and $rhs eq "";
-   return 1 if $rhs eq "";
-   return -1 if $lhs eq "";
-
-   my $PREFIX_FLAGS = $self->isupport( "PREFIX_FLAGS" );
-
-   ( my $lhs_index = index $PREFIX_FLAGS, $lhs ) > -1 or return undef;
-   ( my $rhs_index = index $PREFIX_FLAGS, $rhs ) > -1 or return undef;
-
-   # IRC puts these in greatest-first, so we need to swap the ordering here
-   return $rhs_index <=> $lhs_index;
-}
-
-sub cmp_prefix_modes
-{
-   my $self = shift;
-   my ( $lhs, $rhs ) = @_;
-
-   return undef unless defined $lhs and defined $rhs;
-
-   my $PREFIX_MODES = $self->isupport( "PREFIX_MODES" );
-
-   ( my $lhs_index = index $PREFIX_MODES, $lhs ) > -1 or return undef;
-   ( my $rhs_index = index $PREFIX_MODES, $rhs ) > -1 or return undef;
-
-   # IRC puts these in greatest-first, so we need to swap the ordering here
-   return $rhs_index <=> $lhs_index;
-}
-
-sub prefix_mode2flag
-{
-   my $self = shift;
-   my ( $mode ) = @_;
-
-   return $self->{isupport}->{PREFIX_MAP_M2F}->{$mode};
-}
-
-sub prefix_flag2mode
-{
-   my $self = shift;
-   my ( $flag ) = @_;
-
-   return $self->{isupport}->{PREFIX_MAP_F2M}->{$flag};
-}
-
-sub casefold_name
-{
-   my $self = shift;
-   my ( $nick ) = @_;
-
-   return undef unless defined $nick;
-
-   # Squash the 'capital' [\] into lowercase {|}
-   $nick =~ tr/[\\]/{|}/ if $self->{casemap_1459};
-
-   # Most RFC 1459 implementations also squash ^ to ~, even though the RFC
-   # didn't mention it
-   $nick =~ tr/^/~/ unless $self->{casemap_1459_strict};
-
-   return lc $nick;
-}
-
-sub classify_name
-{
-   my $self = shift;
-   my ( $name ) = @_;
-
-   return "channel" if $name =~ $self->{channame_re};
-   return "user"; # TODO: Perhaps we can be a bit stricter - only check for valid nick chars?
-}
-
-# Some state accessors
-sub nick
-{
-   my $self = shift;
-   return $self->{nick};
-}
-
-sub nick_folded
-{
-   my $self = shift;
-   return $self->{nick_folded};
-}
-
-# Some state mutators
-sub set_nick
-{
-   my $self = shift;
-   ( $self->{nick} ) = @_;
-   $self->{nick_folded} = $self->casefold_name( $self->{nick} );
-}
-
-# Wrapper for sending command to server
-sub change_nick
-{
-   my $self = shift;
-   my ( $newnick ) = @_;
-
-   if( $self->{state} == STATE_UNCONNECTED or $self->{state} == STATE_CONNECTING ) {
-      $self->set_nick( $newnick );
-   }
-   elsif( $self->{state} == STATE_CONNECTED or $self->{state} == STATE_LOGGEDIN ) {
-      $self->send_message( "NICK", undef, $newnick );
-   }
-   else {
-      croak "Cannot change_nick - bad state $self->{state}";
-   }
 }
 
 # Keep perl happy; keep Britain tidy
