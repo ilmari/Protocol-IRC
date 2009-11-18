@@ -346,7 +346,37 @@ $ARG_NAMES{$_} = { text => 1 } for qw(
 
 =head2 $names = $message->arg_names
 
-TODO
+Returns a hash giving details on how to parse named arguments for the command
+given in this message.
+
+This will be a hash whose keys give the names of the arguments, and the values
+of these keys indicate how that argument is derived from the simple positional
+arguments.
+
+Normally this method is only called internally by the C<named_args> method,
+but is documented here for the benefit of completeness, and in case extension
+modules wish to define parsing of new message types.
+
+Each value should be one of the following:
+
+=over 4
+
+=item * String literal C<pn>
+
+The value is a string, the nickname given in the message prefix
+
+=item * NUMBER..NUMBER
+
+The value is an ARRAY ref, containing a list of all the numbered arguments
+between the (inclusive) given limits. Either or both limits may be negative;
+they will count backwards from the end.
+
+=item * NUMBER
+
+The value is the argument at that numeric index. May be negative to count
+backwards from the end.
+
+=back
 
 =cut
 
@@ -370,7 +400,11 @@ sub arg_names
 
 =head2 $args = $message->named_args
 
-TODO
+Parses arguments in the message according to the specification given by the
+C<arg_names> method. Returns a hash of parsed arguments.
+
+TODO: More complete documentation on the exact arg names/values per message
+type.
 
 =cut
 
