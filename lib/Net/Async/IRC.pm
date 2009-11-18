@@ -795,7 +795,106 @@ sub change_nick
 
 =head1 MESSAGE HANDLING
 
-TODO
+Every incoming message from the IRC server causes a sequence of message
+handling to occur. First, the message is parsed, and a hash of data about it
+is created; this is called the hints hash. The message and this hash are then
+passed down a sequence of potential handlers. 
+
+Each handler indicates by return value, whether it considers the message to
+have been handled. Processing of the message is not interrupted the first time
+a handler declares to have handled a message. Instead, the hints hash is marked
+to say it has been handled. Later handlers can still inspect the message or its
+hints, using this information to decide if they wish to take further action.
+
+A message with a command of C<COMMAND> will try handlers in following places:
+
+=over 4
+
+=item 1.
+
+A CODE ref in a parameter called C<on_message_COMMAND>
+
+ $on_message_COMMAND->( $irc, $message, \%hints )
+
+=item 2.
+
+A method called C<on_message_COMMAND>
+
+ $irc->on_message_COMMAND( $message, \%hints )
+
+=item 3.
+
+A CODE ref in a parameter called C<on_message>
+
+ $on_message->( $irc, 'COMMAND', $message, \%hints )
+
+=item 4.
+
+A method called C<on_message>
+
+ $irc->on_message( 'COMMAND', $message, \%hints )
+
+=back
+
+Certain commands are handled internally by methods on the base
+C<Net::Async::IRC> class itself. These may cause other hints hash keys to be
+created, or to invoke other handler methods. These are documented below.
+
+=cut
+
+=head2 Message Hints
+
+The following keys will be present in any message hint hash:
+
+=over 8
+
+=item handled => BOOL
+
+Initially false. Will be set to true the first time a handler returns a true
+value.
+
+=item prefix_nick => STRING
+
+=item prefix_user => STRING
+
+=item prefix_host => STRING
+
+Values split from the message prefix; see the C<Net::Async::IRC::Message>
+C<prefix_split> method.
+
+=item prefix_name => STRING
+
+Usually the prefix nick, or the hostname in case the nick isn't defined
+(usually on server messages).
+
+=item prefix_is_me => BOOL
+
+True if the nick mentioned in the prefix refers to this connection.
+
+=back
+
+Added to this set, will be all the values returned by the message's
+C<named_args> method. Some of these values may cause yet more values to be
+generated.
+
+If the message type defines a C<target_name>:
+
+=over 8
+
+=item * target_type => STRING
+
+Either C<channel> or C<user>, as returned by C<classify_name>.
+
+=item * target_is_me => BOOL
+
+True if the target name is a user and refers to this connection.
+
+=back
+
+Finally, any key whose name ends in C<_nick> or C<_name> will have a
+corresponding key added with C<_folded> suffixed on its name, containing the
+value casefolded using C<casefold_name>. This is for the convenience of string
+comparisons, hash keys, etc..
 
 =cut
 
@@ -856,9 +955,69 @@ sub incoming_message
    $self->_invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
 }
 
+=head1 PER-MESSAGE SPECIFICS
+
+Because of the wide variety of messages in IRC involving various types of data
+the message handling specific cases for certain types of message, including
+adding extra hints hash items, or invoking extra message handler stages. These
+details are noted here.
+
+Many of these messages create new events; called synthesized messages. These
+are messages created by the C<Net::Async::IRC> object itself, to better
+represent some of the details derived from the primary ones from the server.
+These events all take lower-case command names, rather than capitals, and will
+have a C<synthesized> key in the hints hash, set to a true value. These are
+dispatched and handled identically to regular primary events, detailed above.
+
+If any handler of the synthesized message returns true, then this marks the
+primary message handled as well.
+
+=cut
+
 #########################
 # Prepare hints methods #
 #########################
+
+=head2 MODE (on channels) and 324 (RPL_CHANNELMODEIS)
+
+These message involve channel modes. The raw list of channel modes is parsed
+into an array containing one entry per affected piece of data. Each entry will
+contain at least a C<type> key, indicating what sort of mode or mode change
+it is:
+
+=over 8
+
+=item list
+
+The mode relates to a list; bans, invites, etc..
+
+=item value
+
+The mode sets a value about the channel
+
+=item bool
+
+The mode is a simple boolean flag about the channel
+
+=item occupant
+
+The mode relates to a user in the channel
+
+=back
+
+Every mode type then provides a C<mode> key, containing the mode character
+itself, and a C<sense> key which is an empty string, C<+>, or C<->.
+
+For C<list> and C<value> types, the C<value> key gives the actual list entry
+or value being set.
+
+For C<occupant> types, a C<flag> key gives the mode converted into an occupant
+flag (by the C<prefix_mode2flag> method), C<nick> and C<nick_folded> store the
+user name affected.
+
+C<boolean> types do not create any extra keys.
+
+=cut
 
 sub prepare_hints_channelmode
 {
@@ -1047,6 +1206,79 @@ sub on_message_PRIVMSG
    return $self->_on_message_text( $message, $hints, 0 );
 }
 
+=head2 NOTICE and PRIVMSG
+
+Because C<NOTICE> and C<PRIVMSG> are so similar, they are handled together by
+synthesized events called C<text>, C<ctcp> and C<ctcpreply>. Depending on the
+contents of the text, and whether it was supplied in a C<PRIVMSG> or a
+C<NOTICE>, one of these three events will be created. 
+
+In all cases, the hints hash will contain a C<is_notice> key being true or
+false, depending on whether the original messages was a C<NOTICE> or a
+C<PRIVMSG>, a C<target_name> key containing the message target name, a
+case-folded version of the name in a C<target_name_folded> key, and a
+classification of the target type in a C<target_type> key.
+
+For the C<user> target type, it will contain a boolean in C<target_is_me> to
+indicate if the target of the message is the user represented by this
+connection.
+
+For the C<channel> target type, it will contain a C<restriction> key
+containing the channel message restriction, if present.
+
+For normal C<text> messages, it will contain a key C<text> containing the
+actual message text.
+
+For either CTCP message type, it will contain keys C<ctcp_verb> and
+C<ctcp_args> with the parsed message. The C<ctcp_verb> will contain the first
+space-separated token, and C<ctcp_args> will be a string containing the rest
+of the line, otherwise unmodified. This type of message is also subject to a
+special stage of handler dispatch, involving the CTCP verb string. For
+messages with C<VERB> as the verb, the following are tried. C<CTCP> may stand
+for either C<ctcp> or C<ctcpreply>.
+
+=over 4
+
+=item 1.
+
+A CODE ref in a parameter called C<on_message_CTCP_VERB>
+
+ $on_message_CTCP_VERB->( $irc, $message, \%hints )
+
+=item 2.
+
+A method called C<on_message_CTCP_VERB>
+
+ $irc->on_message_CTCP_VERB( $message, \%hints )
+
+=item 3.
+
+A CODE ref in a parameter called C<on_message_CTCP>
+
+ $on_message_CTCP->( $irc, 'VERB', $message, \%hints )
+
+=item 4.
+
+A method called C<on_message_CTCP>
+
+ $irc->on_message_CTCP( 'VERB', $message, \%hintss )
+
+=item 5.
+
+A CODE ref in a parameter called C<on_message>
+
+ $on_message->( $irc, 'CTCP VERB', $message, \%hints )
+
+=item 6.
+
+A method called C<on_message>
+
+ $irc->on_message( 'CTCP VERB', $message, \%hints )
+
+=back
+
+=cut
+
 sub _on_message_text
 {
    my $self = shift;
@@ -1174,6 +1406,33 @@ sub on_message_005
    return 0;
 }
 
+=head2 352 (RPL_WHOREPLY) and 315 (RPL_ENDOFWHO)
+
+These messages will be collected up, per channel, and formed into a single
+synthesized event called C<who>.
+
+Its hints hash will contain an extra key, C<who>, which will be an ARRAY ref
+containing the lines of the WHO reply. Each line will be a HASH reference
+containing:
+
+=over 8
+
+=item user_ident
+
+=item user_host
+
+=item user_server
+
+=item user_nick
+
+=item user_nick_folded
+
+=item user_flags
+
+=back
+
+=cut
+
 sub on_message_315 # RPL_ENDOFWHO
 {
    my $self = shift;
@@ -1190,6 +1449,25 @@ sub on_message_352 # RPL_WHOREPLY
    );
    return 1;
 }
+
+=head2 353 (RPL_NAMES) and 366 (RPL_ENDOFNAMES)
+
+These messages will be collected up, per channel, and formed into a single
+synthesized event called C<names>.
+
+Its hints hash will contain an extra key, C<names>, which will be an ARRAY ref
+containing the usernames in the channel. Each will be a HASH reference
+containing:
+
+=over 8
+
+=item nick
+
+=item flag
+
+=back
+
+=cut
 
 sub on_message_353 # RPL_NAMES
 {
@@ -1233,6 +1511,34 @@ sub on_message_366 # RPL_ENDOFNAMES
    return $hints{handled};
 }
 
+=head2 367 (RPL_BANLIST) and 368 (RPL_ENDOFBANS)
+
+These messages will be collected up, per channel, and formed into a single
+synthesized event called C<bans>.
+
+Its hints hash will contain an extra key, C<bans>, which will be an ARRAY ref
+containing the ban lines. Each line will be a HASH reference containing:
+
+=over 8
+
+=item mask
+
+User mask of the ban
+
+=item by_nick
+
+=item by_nick_folded
+
+Nickname of the user who set the ban
+
+=item timestamp
+
+UNIX timestamp the ban was created
+
+=back
+
+=cut
+
 sub on_message_367 # RPL_BANLIST
 {
    my $self = shift;
@@ -1249,6 +1555,15 @@ sub on_message_368 # RPL_ENDOFBANS
    my ( $message, $hints ) = @_;
    $self->pull_list_and_invoke( "bans", $message, $hints );
 }
+
+=head2 372 (RPL_MOTD), 375 (RPL_MOTDSTART) and 376 (RPL_ENDOFMOTD)
+
+These messages will be collected up into a synthesized event called C<motd>.
+
+Its hints hash will contain an extra key, C<motd>, which will be an ARRAY ref
+containing the lines of the MOTD.
+
+=cut
 
 sub on_message_372 # RPL_MOTD
 {
