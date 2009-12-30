@@ -317,7 +317,8 @@ $ARG_NAMES{$_} = { target_name => 0 } for qw(
 
 # Normal targeted numerics
 $ARG_NAMES{$_} = { target_name => 1 } for qw(
-   307 311 312 313 314 315 317 318 319 369 387
+   307 311 312 313 314 315 317 318 319 320 369 387
+   328
    331 341
    346 347 348 349
    366 368
