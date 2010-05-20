@@ -1474,8 +1474,7 @@ sub on_message_353 # RPL_NAMES
    my $self = shift;
    my ( $message, $hints ) = @_;
 
-   my @names = split( m/ /, $hints->{names} );
-   $self->build_list( "names", $hints->{target_name_folded}, $_ ) foreach @names;
+   $self->build_list( "names", $hints->{target_name_folded}, $_ ) foreach @{ $hints->{names} };
 
    return 1;
 }

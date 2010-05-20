@@ -288,7 +288,7 @@ my %ARG_NAMES = (
    317 => { target_name => 1,
             idle_time   => 2 }, # WHOISIDLE
    319 => { target_name => 1,
-            channels    => 2 }, # WHOISCHANNELS
+            channels    => '2@' }, # WHOISCHANNELS
 
    324 => { target_name => 1,
             modechars   => 2,
@@ -315,7 +315,7 @@ my %ARG_NAMES = (
           }, # WHOREPLY
 
    353 => { target_name => 2,
-            names       => 3 }, # NAMEREPLY
+            names       => '3@' }, # NAMEREPLY
    367 => { target_name => 1,
             mask        => 2,
             by_nick     => 3,
@@ -394,6 +394,11 @@ they will count backwards from the end.
 The value is the argument at that numeric index. May be negative to count
 backwards from the end.
 
+=item * NUMBER@
+
+The value is the argument at that numeric index as for C<NUMBER>, except that
+the result will be split on spaces and stored in an ARRAY ref.
+
 =back
 
 =cut
@@ -453,6 +458,9 @@ sub named_args
       }
       elsif( $argindex =~ m/^-?\d+$/ ) {
          $value = $self->arg( $argindex );
+      }
+      elsif( $argindex =~ m/^(-?\d+)\@$/ ) {
+         $value = [ split ' ', $self->arg( $1 ) ];
       }
       else {
          die "Unrecognised argument specification $argindex";
