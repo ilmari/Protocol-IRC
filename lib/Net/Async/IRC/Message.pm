@@ -275,6 +275,20 @@ my %ARG_NAMES = (
 
    301 => { target_name => 1,
             text        => 2 }, # AWAY
+   311 => { target_name => 1,
+            ident       => 2,
+            host        => 3,
+            flags       => 4,
+            realname    => 5 }, # WHOISUSER
+   314 => { target_name => 1,
+            ident       => 2,
+            host        => 3,
+            flags       => 4,
+            realname    => 5 }, # WHOWASUSER
+   317 => { target_name => 1,
+            idle_time   => 2 }, # WHOISIDLE
+   319 => { target_name => 1,
+            channels    => 2 }, # WHOISCHANNELS
 
    324 => { target_name => 1,
             modechars   => 2,
@@ -320,7 +334,7 @@ $ARG_NAMES{$_} = { target_name => 0 } for qw(
 
 # Normal targeted numerics
 $ARG_NAMES{$_} = { target_name => 1 } for qw(
-   307 311 312 313 314 315 317 318 319 320 369 387
+   307 312 313 315 318 320 369 387
    328
    331 341
    346 347 348 349
