@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2008,2009 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2008-2010 -- leonerd@leonerd.org.uk
 
 package Net::Async::IRC::Message;
 
@@ -281,6 +281,9 @@ my %ARG_NAMES = (
             modeargs    => "3.." }, # CHANNELMODEIS
    329 => { target_name => 1,
             timestamp   => 2 },    # CHANNELCREATED - extension not in 2812
+   330 => { target_name => 1,
+            whois_nick  => 2,
+            login_name  => 3, },   # LOGGEDINAS - extension not in 2812
    331 => { target_name => 1 },    # NOTOPIC
    332 => { target_name => 1,
             text        => 2 },    # TOPIC
