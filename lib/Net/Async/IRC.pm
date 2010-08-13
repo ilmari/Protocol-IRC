@@ -92,6 +92,8 @@ sub _init
 {
    my $self = shift;
 
+   $self->SUPER::_init;
+
    my $pingtime = 60;
    my $pongtime = 10;
 
