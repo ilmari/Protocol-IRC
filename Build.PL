@@ -3,8 +3,7 @@ use warnings;
 
 use Module::Build;
 
-my $build = Module::Build->new
-  (
+my $build = Module::Build->new(
    module_name => 'Net::Async::IRC',
    requires => {
       'IO::Async::Stream' => 0,
@@ -20,6 +19,6 @@ my $build = Module::Build->new
    create_makefile_pl => 'traditional',
    create_license => 1,
    create_readme  => 1,
-  );
+);
   
 $build->create_build_script;
