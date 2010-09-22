@@ -32,7 +32,7 @@ my $CRLF = "\x0d\x0a"; # More portable than \r\n
 
 =head1 NAME
 
-C<Net::Async::IRC> - Asynchronous IRC client
+C<Net::Async::IRC> - Use IRC with C<IO::Async>
 
 =head1 SYNOPSIS
 
