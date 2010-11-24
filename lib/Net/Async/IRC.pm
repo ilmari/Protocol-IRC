@@ -359,13 +359,10 @@ sub connect
    $loop->connect(
       %args,
 
-      on_connected => sub {
-         my ( $sock ) = @_;
+      on_stream => sub {
+         my ( $stream ) = @_;
 
-         $self->configure(
-            # TODO: This might not be a plain ::Stream
-            transport => IO::Async::Stream->new( handle => $sock ),
-         );
+         $self->configure( transport => $stream );
 
          $on_connected->( $self );
       },
