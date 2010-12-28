@@ -10,7 +10,7 @@ use warnings;
 
 our $VERSION = '0.03';
 
-use base qw( IO::Async::Protocol::Stream );
+use base qw( IO::Async::Protocol::LineStream );
 
 use Carp;
 
@@ -27,8 +27,6 @@ use constant STATE_CONNECTED   => 2; # Socket connected
 use constant STATE_LOGGEDIN    => 3; # USER/NICK send, server confirmed login
 
 use Encode qw( find_encoding );
-
-my $CRLF = "\x0d\x0a"; # More portable than \r\n
 
 =head1 NAME
 
@@ -58,8 +56,8 @@ future.
 
 Returns a new instance of a C<Net::Async::IRC> object. This object represents
 a connection to a single IRC server. As it is a subclass of
-C<IO::Async::Stream> its constructor takes any arguments for that class, in
-addition to the parameters named below.
+C<IO::Async::Protocol::LineStream> its constructor takes any arguments for
+that class, in addition to the parameters named below.
 
 =cut
 
@@ -476,23 +474,19 @@ sub login
 }
 
 # for IO::Async::Stream
-sub on_read
+sub on_read_line
 {
    my $self = shift;
-   my ( $buffref, $closed ) = @_;
+   my ( $line ) = @_;
 
-   if( $$buffref =~ s/^(.*)$CRLF// ) {
-      my $message = Net::Async::IRC::Message->new_from_line( $1 );
+   my $message = Net::Async::IRC::Message->new_from_line( $line );
 
-      my $pingtimer = $self->{pingtimer};
+   my $pingtimer = $self->{pingtimer};
 
-      $pingtimer->is_running ? $pingtimer->reset : $pingtimer->start;
-      $self->incoming_message( $message );
+   $pingtimer->is_running ? $pingtimer->reset : $pingtimer->start;
+   $self->incoming_message( $message );
 
-      return 1;
-   }
-
-   return 0;
+   return 1;
 }
 
 =head2 $irc->send_message( $message )
@@ -531,7 +525,7 @@ sub send_message
       $message = Net::Async::IRC::Message->new( $command, $prefix, @args );
    }
 
-   $self->write( $message->stream_to_line . $CRLF );
+   $self->write_line( $message->stream_to_line );
 }
 
 =head2 $irc->send_ctcp( $prefix, $target, $verb, $argstr )
