@@ -45,7 +45,7 @@ parameters, and methods documented below are relevant there.
 =head2 $irc = Net::Async::IRC::Protocol->new( %args )
 
 Returns a new instance of a C<Net::Async::IRC::Protocol> object. This object
-represents a connection to a single IRC server. As it is a subclass of
+represents a IRC connection to a peer. As it is a subclass of
 C<IO::Async::Protocol::LineStream> its constructor takes any arguments for
 that class, in addition to the parameters named below.
 
@@ -136,7 +136,7 @@ C<MESSAGE HANDLING>.
 
 =item pingtime => NUM
 
-Amount of quiet time, in seconds, after a message is received from the server,
+Amount of quiet time, in seconds, after a message is received from the peer,
 until a C<PING> will be sent to check it is still alive.
 
 =item pongtime => NUM
@@ -146,14 +146,14 @@ response.
 
 =item on_ping_timeout => CODE
 
-A CODE reference to invoke if the server fails to respond to a C<PING> message
+A CODE reference to invoke if the peer fails to respond to a C<PING> message
 within the given timeout.
 
  $on_ping_timeout->( $irc )
 
 =item on_pong_reply => CODE
 
-A CODE reference to invoke when the server successfully sends a C<PONG> in
+A CODE reference to invoke when the peer successfully sends a C<PONG> in
 response of a C<PING> message.
 
  $on_pong_reply->( $irc, $lag )
@@ -223,9 +223,9 @@ sub teardown_transport
 
 =head2 $connect = $irc->is_connected
 
-Returns true if a connection to the server is established. Note that even
-after a successful connection, the server may not yet logged in to. See also
-the C<is_loggedin> method.
+Returns true if a connection to the peer is established. Note that even
+after a successful connection, the connection may not yet logged in to. See
+also the C<is_loggedin> method.
 
 =cut
 
@@ -237,7 +237,8 @@ sub is_connected
 
 =head2 $loggedin = $irc->is_loggedin
 
-Returns true if the server has been logged in to.
+Returns true if the full login sequence has been performed on the connection
+and it is ready to use.
 
 =cut
 
@@ -283,12 +284,12 @@ sub on_read_line
 
 =head2 $irc->send_message( $message )
 
-Sends a message to the server from the given C<Net::Async::IRC::Message>
+Sends a message to the peer from the given C<Net::Async::IRC::Message>
 object.
 
 =head2 $irc->send_message( $command, $prefix, @args )
 
-Sends a message to the server directly from the given arguments.
+Sends a message to the peer directly from the given arguments.
 
 =cut
 
@@ -674,8 +675,9 @@ A method called C<on_message>
 =back
 
 Certain commands are handled internally by methods on the base
-C<Net::Async::IRC> class itself. These may cause other hints hash keys to be
-created, or to invoke other handler methods. These are documented below.
+C<Net::Async::IRC::Protocol> class itself. These may cause other hints hash
+keys to be created, or to invoke other handler methods. These are documented
+below.
 
 =cut
 
