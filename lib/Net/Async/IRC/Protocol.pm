@@ -104,6 +104,12 @@ sub _init
    $self->add_child( $self->{pongtimer} );
 
    $self->{state} = { connected => 0, loggedin => 0 };
+   $self->{isupport} = {};
+
+   # Some initial defaults for isupport-derived values
+   $self->{channame_re} = qr/^[#&]/;
+   $self->{prefixflag_re} = qr/^[\@+]/;
+   $self->{isupport}->{CHANMODES_LIST} = [qw( b k l imnpst )]; # TODO: ov
 }
 
 =head1 PARAMETERS
@@ -292,6 +298,197 @@ sub send_ctcpreply
    my ( $prefix, $target, $verb, $argstr ) = @_;
 
    $self->send_message( "NOTICE", undef, $target, "\001$verb $argstr\001" );
+}
+
+=head1 ISUPPORT-DRIVEN UTILITIES
+
+The following methods are controlled by the server information given in the
+C<ISUPPORT> settings.
+
+=cut
+
+sub _set_isupport
+{
+   my $self = shift;
+   my ( $isupport ) = @_;
+
+   foreach my $name ( keys %$isupport ) {
+      my $value = $isupport->{$name};
+
+      $value = 1 if !defined $value;
+
+      $self->{isupport}->{$name} = $value;
+
+      if( $name eq "PREFIX" ) {
+         my $prefix = $value;
+
+         my ( $prefix_modes, $prefix_flags ) = $prefix =~ m/^\(([a-z]+)\)(.+)$/;
+
+         $self->{isupport}->{PREFIX_MODES} = $prefix_modes;
+         $self->{isupport}->{PREFIX_FLAGS} = $prefix_flags;
+
+         $self->{prefixflag_re} = qr/^[$prefix_flags]/;
+
+         my %prefix_map;
+         $prefix_map{substr $prefix_modes, $_, 1} = substr $prefix_flags, $_, 1 for ( 0 .. length($prefix_modes) - 1 );
+
+         $self->{isupport}->{PREFIX_MAP_M2F} = \%prefix_map;
+         $self->{isupport}->{PREFIX_MAP_F2M} = { reverse %prefix_map };
+      }
+      elsif( $name eq "CHANMODES" ) {
+         $self->{isupport}->{CHANMODES_LIST} = [ split( m/,/, $value ) ];
+      }
+      elsif( $name eq "CASEMAPPING" ) {
+         $self->{casemap_1459} = ( lc $value ne "ascii" ); # RFC 1459 unless we're told not
+         $self->{casemap_1459_strict} = ( lc $value eq "strict-rfc1459" );
+
+         $self->{nick_folded} = $self->casefold_name( $self->{nick} );
+      }
+      elsif( $name eq "CHANTYPES" ) {
+         $self->{channame_re} = qr/^[$value]/;
+      }
+   }
+}
+
+=head2 $value = $irc->isupport( $key )
+
+Returns an item of information from the server's C<005 ISUPPORT> lines.
+Traditionally IRC servers use all-capital names for keys.
+
+=cut
+
+sub isupport
+{
+   my $self = shift;
+   my ( $flag ) = @_;
+
+   return exists $self->{isupport}->{$flag} ? 
+                 $self->{isupport}->{$flag} : undef;
+}
+
+=head2 $cmp = $irc->cmp_prefix_flags( $lhs, $rhs )
+
+Compares two channel occupant prefix flags, and returns a signed integer to
+indicate which of them has higher priviledge, according to the server's
+ISUPPORT declaration. Suitable for use in a C<sort()> function or similar.
+
+=cut
+
+sub cmp_prefix_flags
+{
+   my $self = shift;
+   my ( $lhs, $rhs ) = @_;
+
+   return undef unless defined $lhs and defined $rhs;
+
+   # As a special case, compare emptystring as being lower than voice
+   return 0 if $lhs eq "" and $rhs eq "";
+   return 1 if $rhs eq "";
+   return -1 if $lhs eq "";
+
+   my $PREFIX_FLAGS = $self->isupport( "PREFIX_FLAGS" );
+
+   ( my $lhs_index = index $PREFIX_FLAGS, $lhs ) > -1 or return undef;
+   ( my $rhs_index = index $PREFIX_FLAGS, $rhs ) > -1 or return undef;
+
+   # IRC puts these in greatest-first, so we need to swap the ordering here
+   return $rhs_index <=> $lhs_index;
+}
+
+=head2 $cmp = $irc->cmp_prefix_modes( $lhs, $rhs )
+
+Similar to C<cmp_prefix_flags>, but compares channel occupant C<MODE> command
+flags.
+
+=cut
+
+sub cmp_prefix_modes
+{
+   my $self = shift;
+   my ( $lhs, $rhs ) = @_;
+
+   return undef unless defined $lhs and defined $rhs;
+
+   my $PREFIX_MODES = $self->isupport( "PREFIX_MODES" );
+
+   ( my $lhs_index = index $PREFIX_MODES, $lhs ) > -1 or return undef;
+   ( my $rhs_index = index $PREFIX_MODES, $rhs ) > -1 or return undef;
+
+   # IRC puts these in greatest-first, so we need to swap the ordering here
+   return $rhs_index <=> $lhs_index;
+}
+
+=head2 $flag = $irc->prefix_mode2flag( $mode )
+
+Converts a channel occupant C<MODE> flag (such as C<o>) into a name prefix
+flag (such as C<@>).
+
+=cut
+
+sub prefix_mode2flag
+{
+   my $self = shift;
+   my ( $mode ) = @_;
+
+   return $self->{isupport}->{PREFIX_MAP_M2F}->{$mode};
+}
+
+=head2 $mode = $irc->prefix_flag2mode( $flag )
+
+The inverse of C<prefix_mode2flag>.
+
+=cut
+
+sub prefix_flag2mode
+{
+   my $self = shift;
+   my ( $flag ) = @_;
+
+   return $self->{isupport}->{PREFIX_MAP_F2M}->{$flag};
+}
+
+=head2 $name_folded = $irc->casefold_name( $name )
+
+Returns the C<$name>, folded in case according to the server's C<CASEMAPPING>
+C<ISUPPORT>. Such a folded name will compare using C<eq> according to whether the
+server would consider it the same name.
+
+Useful for use in hash keys or similar.
+
+=cut
+
+sub casefold_name
+{
+   my $self = shift;
+   my ( $nick ) = @_;
+
+   return undef unless defined $nick;
+
+   # Squash the 'capital' [\] into lowercase {|}
+   $nick =~ tr/[\\]/{|}/ if $self->{casemap_1459};
+
+   # Most RFC 1459 implementations also squash ^ to ~, even though the RFC
+   # didn't mention it
+   $nick =~ tr/^/~/ unless $self->{casemap_1459_strict};
+
+   return lc $nick;
+}
+
+=head2 $classification = $irc->classify_name( $name )
+
+Returns C<channel> if the given name matches the pattern of names allowed for
+channels according to the server's C<CHANTYPES> C<ISUPPORT>. Returns C<user>
+if not.
+
+=cut
+
+sub classify_name
+{
+   my $self = shift;
+   my ( $name ) = @_;
+
+   return "channel" if $name =~ $self->{channame_re};
+   return "user"; # TODO: Perhaps we can be a bit stricter - only check for valid nick chars?
 }
 
 # Keep perl happy; keep Britain tidy
