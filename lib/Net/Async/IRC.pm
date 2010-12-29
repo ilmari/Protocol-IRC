@@ -15,7 +15,6 @@ use base qw( Net::Async::IRC::Protocol );
 use Carp;
 
 use Socket qw( SOCK_STREAM );
-use Time::HiRes qw( time );
 
 use Net::Async::IRC::Message;
 
@@ -768,33 +767,6 @@ sub on_message_NOTICE
    my $self = shift;
    my ( $message, $hints ) = @_;
    return $self->_on_message_text( $message, $hints, 1 );
-}
-
-sub on_message_PING
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-
-   $self->send_message( "PONG", undef, $hints->{text} );
-   return 1;
-}
-
-sub on_message_PONG
-{
-   my $self = shift;
-   my ( $message ) = @_;
-
-   # Protect against spurious PONGs from the server
-   return 1 unless $self->{pongtimer}->is_running;
-
-   my $lag = time() - $self->{ping_send_time};
-
-   $self->{current_lag} = $lag;
-   $self->{on_pong_reply}->( $self, $lag ) if $self->{on_pong_reply};
-
-   $self->{pongtimer}->stop;
-
-   return 1;
 }
 
 sub on_message_PRIVMSG

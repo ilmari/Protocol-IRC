@@ -14,6 +14,8 @@ use base qw( IO::Async::Protocol::LineStream );
 
 use Carp;
 
+use Time::HiRes qw( time );
+
 use IO::Async::Timer::Countdown;
 
 =head1 NAME
@@ -227,7 +229,26 @@ sub on_read_line
    my $pingtimer = $self->{pingtimer};
 
    $pingtimer->is_running ? $pingtimer->reset : $pingtimer->start;
-   $self->incoming_message( $message );
+
+   # Handle these locally as a special case
+   my $command = $message->command;
+
+   if( $command eq "PING" ) {
+      $self->send_message( "PONG", undef, $message->named_args->{text} );
+   }
+   elsif( $command eq "PONG" ) {
+      return 1 unless $self->{pongtimer}->is_running;
+
+      my $lag = time - $self->{ping_send_time};
+
+      $self->{current_lag} = $lag;
+      $self->{on_pong_reply}->( $self, $lag ) if $self->{on_pong_reply};
+
+      $self->{pongtimer}->stop;
+   }
+   else {
+      $self->incoming_message( $message );
+   }
 
    return 1;
 }
