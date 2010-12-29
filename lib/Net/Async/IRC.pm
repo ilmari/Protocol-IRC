@@ -326,7 +326,7 @@ sub connect
    my $self = shift;
    my %args = @_;
 
-   $self->{state}{connected} and croak "Cannot ->connect - not in unconnected state";
+   $self->is_connected and croak "Cannot ->connect - not in unconnected state";
 
    my $loop = $self->get_loop or croak "Cannot ->connect a ".ref($self)." that is not in a Loop";
 
@@ -423,7 +423,7 @@ sub login
    my $on_login = delete $args{on_login};
    ref $on_login eq "CODE" or croak "Expected 'on_login' as a CODE reference";
 
-   if( $self->{state}{connected} ) {
+   if( $self->is_connected ) {
       $self->send_message( "PASS", undef, $pass ) if defined $pass;
 
       $self->send_message( "USER", undef, $user, "0", "*", $realname );
@@ -764,7 +764,7 @@ sub change_nick
    my $self = shift;
    my ( $newnick ) = @_;
 
-   if( !$self->{state}{connected} ) {
+   if( !$self->is_connected ) {
       $self->set_nick( $newnick );
    }
    else {
