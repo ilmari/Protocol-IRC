@@ -16,8 +16,6 @@ use Carp;
 
 use Socket qw( SOCK_STREAM );
 
-use Net::Async::IRC::Message;
-
 =head1 NAME
 
 C<Net::Async::IRC> - Use IRC with C<IO::Async>

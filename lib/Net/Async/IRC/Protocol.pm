@@ -14,6 +14,8 @@ use base qw( IO::Async::Protocol::LineStream );
 
 use Carp;
 
+use Net::Async::IRC::Message;
+
 use Encode qw( find_encoding );
 use Time::HiRes qw( time );
 
