@@ -1144,4 +1144,3 @@ L<http://tools.ietf.org/html/rfc2812> - Internet Relay Chat: Client Protocol
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
-
