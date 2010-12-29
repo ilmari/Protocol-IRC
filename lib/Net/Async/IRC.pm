@@ -622,7 +622,7 @@ sub prepare_hints_channelmode
    my $self = shift;
    my ( $message, $hints ) = @_;
 
-   my ( $listmodes, $argmodes, $argsetmodes, $boolmodes ) = @{ $self->isupport( 'CHANMODES_LIST' ) };
+   my ( $listmodes, $argmodes, $argsetmodes, $boolmodes ) = @{ $self->isupport( 'chanmodes_list' ) };
 
    my $modechars = $hints->{modechars};
    my @modeargs = @{ $hints->{modeargs} };
@@ -891,8 +891,10 @@ sub _on_message_text
    # TODO: In client->server messages this might be a comma-separated list
    my $target = delete $hints{targets};
 
+   my $prefixflag_re = $self->isupport( 'prefixflag_re' );
+
    my $restriction = "";
-   while( $target =~ $self->{prefixflag_re} ) {
+   while( $target =~ m/^$prefixflag_re/ ) {
       $restriction .= substr( $target, 0, 1, "" );
    }
 
@@ -964,6 +966,8 @@ sub on_message_005
    my ( $message, $hints ) = @_;
 
    $self->_set_isupport( { map { m/^([A-Z]+)(?:=(.*))?$/ } @{ $hints->{isupport} } } );
+
+   $self->{nick_folded} = $self->casefold_name( $self->{nick} );
 
    return 0;
 }
@@ -1048,7 +1052,8 @@ sub on_message_366 # RPL_ENDOFNAMES
 
    my $names = $self->pull_list( "names", $hints->{target_name_folded} );
 
-   my $re = qr/^($self->{prefixflag_re})?(.*)$/;
+   my $prefixflag_re = $self->isupport( 'prefixflag_re' );
+   my $re = qr/^($prefixflag_re)?(.*)$/;
 
    my %names;
 

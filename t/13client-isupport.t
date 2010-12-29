@@ -54,8 +54,8 @@ is( $irc->isupport( "CHANMODES" ), "beI,k,l,imnpsta", 'ISUPPORT CHANMODES is beI
 is( $irc->isupport( "CHANTYPES" ), "#&", 'ISUPPORT CHANTYPES is #&' );
 
 # Now the generated ones from PREFIX
-is( $irc->isupport( "PREFIX_MODES" ), "ohv", 'ISUPPORT PREFIX_MODES is ohv' );
-is( $irc->isupport( "PREFIX_FLAGS" ), "\@\%+", 'ISUPPORT PREFIX_FLAGS is @%+' );
+is( $irc->isupport( "prefix_modes" ), "ohv", 'ISUPPORT PREFIX_MODES is ohv' );
+is( $irc->isupport( "prefix_flags" ), "\@\%+", 'ISUPPORT PREFIX_FLAGS is @%+' );
 
 is( $irc->prefix_mode2flag( "o" ), "\@", 'prefix_mode2flag o -> @' );
 is( $irc->prefix_flag2mode( "\@" ), "o", 'prefix_flag2mode @ -> o' );
@@ -93,4 +93,4 @@ wait_for { $irc->isupport( "CASEMAPPING" ) eq "ascii" };
 is( $irc->casefold_name( "FOO[AWAY]" ), "foo[away]", 'casefold_name FOO[AWAY] under ascii' );
 
 # Now the generated ones from CHANMODES
-is_deeply( $irc->isupport( "CHANMODES_LIST" ), [qw( beI k l imnpsta )], 'ISUPPORT CHANMODES_LIST is [qw( beI k l imnpsta )]' );
+is_deeply( $irc->isupport( "chanmodes_list" ), [qw( beI k l imnpsta )], 'ISUPPORT chanmodes_list is [qw( beI k l imnpsta )]' );

@@ -107,9 +107,9 @@ sub _init
    $self->{isupport} = {};
 
    # Some initial defaults for isupport-derived values
-   $self->{channame_re} = qr/^[#&]/;
-   $self->{prefixflag_re} = qr/^[\@+]/;
-   $self->{isupport}->{CHANMODES_LIST} = [qw( b k l imnpst )]; # TODO: ov
+   $self->{isupport}{channame_re} = qr/^[#&]/;
+   $self->{isupport}{prefixflag_re} = qr/^[\@+]/;
+   $self->{isupport}{chanmodes_list} = [qw( b k l imnpst )]; # TODO: ov
 }
 
 =head1 PARAMETERS
@@ -305,6 +305,50 @@ sub send_ctcpreply
 The following methods are controlled by the server information given in the
 C<ISUPPORT> settings.
 
+As well as the actual C<ISUPPORT> values set by the server, a number of
+derived values are also calculated. Their names are all lowercase and contain
+underscores, to distinguish them from the uppercase names without underscores
+that the server usually sets.
+
+=over 8
+
+=item prefix_modes => STRING
+
+The mode characters from C<PREFIX> (e.g. C<@%+>)
+
+=item prefix_flags => STRING
+
+The flag characters from C<PREFIX> (e.g. C<ohv>)
+
+=item prefixflag_re => Regexp
+
+A precompiled regexp that matches any of the prefix flags
+
+=item prefix_map_m2f => HASH
+
+A map from mode characters to flag characters
+
+=item prefix_map_f2m => HASH
+
+A map from flag characters to mode characters
+
+=item chanmodes_list => ARRAY
+
+A 4-element array containing the split portions of C<CHANMODES>;
+
+ [ $listmodes, $argmodes, $argsetmodes, $boolmodes ]
+
+=item casemap_1459 => BOOLEAN
+
+True if the C<CASEMAPPING> parameter is not C<ascii>; i.e. it is some form of
+RFC 1459 mapping
+
+=item casemap_1459_strict => BOOLEAN
+
+True if the C<CASEMAPPING> parameter is exactly C<strict-rfc1459>
+
+=back
+
 =cut
 
 sub _set_isupport
@@ -317,35 +361,33 @@ sub _set_isupport
 
       $value = 1 if !defined $value;
 
-      $self->{isupport}->{$name} = $value;
+      $self->{isupport}{$name} = $value;
 
       if( $name eq "PREFIX" ) {
          my $prefix = $value;
 
          my ( $prefix_modes, $prefix_flags ) = $prefix =~ m/^\(([a-z]+)\)(.+)$/;
 
-         $self->{isupport}->{PREFIX_MODES} = $prefix_modes;
-         $self->{isupport}->{PREFIX_FLAGS} = $prefix_flags;
+         $self->{isupport}{prefix_modes} = $prefix_modes;
+         $self->{isupport}{prefix_flags} = $prefix_flags;
 
-         $self->{prefixflag_re} = qr/^[$prefix_flags]/;
+         $self->{isupport}{prefixflag_re} = qr/[$prefix_flags]/;
 
          my %prefix_map;
          $prefix_map{substr $prefix_modes, $_, 1} = substr $prefix_flags, $_, 1 for ( 0 .. length($prefix_modes) - 1 );
 
-         $self->{isupport}->{PREFIX_MAP_M2F} = \%prefix_map;
-         $self->{isupport}->{PREFIX_MAP_F2M} = { reverse %prefix_map };
+         $self->{isupport}{prefix_map_m2f} = \%prefix_map;
+         $self->{isupport}{prefix_map_f2m} = { reverse %prefix_map };
       }
       elsif( $name eq "CHANMODES" ) {
-         $self->{isupport}->{CHANMODES_LIST} = [ split( m/,/, $value ) ];
+         $self->{isupport}{chanmodes_list} = [ split( m/,/, $value ) ];
       }
       elsif( $name eq "CASEMAPPING" ) {
-         $self->{casemap_1459} = ( lc $value ne "ascii" ); # RFC 1459 unless we're told not
-         $self->{casemap_1459_strict} = ( lc $value eq "strict-rfc1459" );
-
-         $self->{nick_folded} = $self->casefold_name( $self->{nick} );
+         $self->{isupport}{casemap_1459} = ( lc $value ne "ascii" ); # RFC 1459 unless we're told not
+         $self->{isupport}{casemap_1459_strict} = ( lc $value eq "strict-rfc1459" );
       }
       elsif( $name eq "CHANTYPES" ) {
-         $self->{channame_re} = qr/^[$value]/;
+         $self->{isupport}{channame_re} = qr/^[$value]/;
       }
    }
 }
@@ -386,7 +428,7 @@ sub cmp_prefix_flags
    return 1 if $rhs eq "";
    return -1 if $lhs eq "";
 
-   my $PREFIX_FLAGS = $self->isupport( "PREFIX_FLAGS" );
+   my $PREFIX_FLAGS = $self->isupport( "prefix_flags" );
 
    ( my $lhs_index = index $PREFIX_FLAGS, $lhs ) > -1 or return undef;
    ( my $rhs_index = index $PREFIX_FLAGS, $rhs ) > -1 or return undef;
@@ -409,7 +451,7 @@ sub cmp_prefix_modes
 
    return undef unless defined $lhs and defined $rhs;
 
-   my $PREFIX_MODES = $self->isupport( "PREFIX_MODES" );
+   my $PREFIX_MODES = $self->isupport( "prefix_modes" );
 
    ( my $lhs_index = index $PREFIX_MODES, $lhs ) > -1 or return undef;
    ( my $rhs_index = index $PREFIX_MODES, $rhs ) > -1 or return undef;
@@ -430,7 +472,7 @@ sub prefix_mode2flag
    my $self = shift;
    my ( $mode ) = @_;
 
-   return $self->{isupport}->{PREFIX_MAP_M2F}->{$mode};
+   return $self->{isupport}{prefix_map_m2f}{$mode};
 }
 
 =head2 $mode = $irc->prefix_flag2mode( $flag )
@@ -444,7 +486,7 @@ sub prefix_flag2mode
    my $self = shift;
    my ( $flag ) = @_;
 
-   return $self->{isupport}->{PREFIX_MAP_F2M}->{$flag};
+   return $self->{isupport}{prefix_map_f2m}{$flag};
 }
 
 =head2 $name_folded = $irc->casefold_name( $name )
@@ -465,11 +507,11 @@ sub casefold_name
    return undef unless defined $nick;
 
    # Squash the 'capital' [\] into lowercase {|}
-   $nick =~ tr/[\\]/{|}/ if $self->{casemap_1459};
+   $nick =~ tr/[\\]/{|}/ if $self->{isupport}{casemap_1459};
 
    # Most RFC 1459 implementations also squash ^ to ~, even though the RFC
    # didn't mention it
-   $nick =~ tr/^/~/ unless $self->{casemap_1459_strict};
+   $nick =~ tr/^/~/ unless $self->{isupport}{casemap_1459_strict};
 
    return lc $nick;
 }
@@ -487,7 +529,7 @@ sub classify_name
    my $self = shift;
    my ( $name ) = @_;
 
-   return "channel" if $name =~ $self->{channame_re};
+   return "channel" if $name =~ $self->{isupport}{channame_re};
    return "user"; # TODO: Perhaps we can be a bit stricter - only check for valid nick chars?
 }
 
