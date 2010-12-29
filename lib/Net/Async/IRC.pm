@@ -80,8 +80,8 @@ If unconnected, changing these properties will set the default values to use
 when logging in.
 
 If logged in, changing the C<nick> property is equivalent to calling
-C<set_nick>. Changing the other properties will not take effect until the next
-login.
+C<change_nick>. Changing the other properties will not take effect until the
+next login.
 
 =item encoding => STRING
 
@@ -104,7 +104,7 @@ sub configure
    }
 
    if( exists $args{nick} ) {
-      $self->set_nick( delete $args{nick} );
+      $self->_set_nick( delete $args{nick} );
    }
 
    if( !defined $self->{user} ) {
@@ -262,7 +262,7 @@ sub login
    my $pass     = delete $args{pass};
 
    if( !defined $self->{nick} ) {
-      $self->set_nick( $nick );
+      $self->_set_nick( $nick );
    }
 
    my $on_login = delete $args{on_login};
@@ -295,20 +295,6 @@ sub login
    }
 }
 
-=head2 $me = $irc->is_nick_me( $nick )
-
-Returns true if the given nick refers to that in use by the connection.
-
-=cut
-
-sub is_nick_me
-{
-   my $self = shift;
-   my ( $nick ) = @_;
-
-   return $self->casefold_name( $nick ) eq $self->{nick_folded};
-}
-
 =head2 $info = $irc->server_info( $key )
 
 Returns an item of information from the server's C<004> line. C<$key> should
@@ -336,39 +322,6 @@ sub server_info
    return $self->{server_info}{$key};
 }
 
-=head2 $nick = $irc->nick
-
-Returns the current nick in use by the connection.
-
-=cut
-
-sub nick
-{
-   my $self = shift;
-   return $self->{nick};
-}
-
-=head2 $nick_folded = $irc->nick_folded
-
-Returns the current nick in use by the connection, folded by C<casefold_name>
-for convenience.
-
-=cut
-
-sub nick_folded
-{
-   my $self = shift;
-   return $self->{nick_folded};
-}
-
-# internal
-sub set_nick
-{
-   my $self = shift;
-   ( $self->{nick} ) = @_;
-   $self->{nick_folded} = $self->casefold_name( $self->{nick} );
-}
-
 =head2 $irc->change_nick( $newnick )
 
 Requests to change the nick. If unconnected, the change happens immediately
@@ -383,7 +336,7 @@ sub change_nick
    my ( $newnick ) = @_;
 
    if( !$self->is_connected ) {
-      $self->set_nick( $newnick );
+      $self->_set_nick( $newnick );
    }
    else {
       $self->send_message( "NICK", undef, $newnick );
@@ -755,7 +708,7 @@ sub on_message_NICK
    my ( $message, $hints ) = @_;
 
    if( $hints->{prefix_is_me} ) {
-      $self->set_nick( $hints->{new_nick} );
+      $self->_set_nick( $hints->{new_nick} );
       return 1;
    }
 
@@ -938,8 +891,6 @@ sub on_message_005
    my ( $message, $hints ) = @_;
 
    $self->_set_isupport( { map { m/^([A-Z]+)(?:=(.*))?$/ } @{ $hints->{isupport} } } );
-
-   $self->{nick_folded} = $self->casefold_name( $self->{nick} );
 
    return 0;
 }

@@ -406,6 +406,8 @@ sub _set_isupport
       elsif( $name eq "CASEMAPPING" ) {
          $self->{isupport}{casemap_1459} = ( lc $value ne "ascii" ); # RFC 1459 unless we're told not
          $self->{isupport}{casemap_1459_strict} = ( lc $value eq "strict-rfc1459" );
+
+         $self->{nick_folded} = $self->casefold_name( $self->{nick} );
       }
       elsif( $name eq "CHANTYPES" ) {
          $self->{isupport}{channame_re} = qr/^[$value]/;
@@ -552,6 +554,52 @@ sub classify_name
 
    return "channel" if $name =~ $self->{isupport}{channame_re};
    return "user"; # TODO: Perhaps we can be a bit stricter - only check for valid nick chars?
+}
+
+=head2 $nick = $irc->nick
+
+Returns the current nick in use by the connection.
+
+=cut
+
+sub _set_nick
+{
+   my $self = shift;
+   ( $self->{nick} ) = @_;
+   $self->{nick_folded} = $self->casefold_name( $self->{nick} );
+}
+
+sub nick
+{
+   my $self = shift;
+   return $self->{nick};
+}
+
+=head2 $nick_folded = $irc->nick_folded
+
+Returns the current nick in use by the connection, folded by C<casefold_name>
+for convenience.
+
+=cut
+
+sub nick_folded
+{
+   my $self = shift;
+   return $self->{nick_folded};
+}
+
+=head2 $me = $irc->is_nick_me( $nick )
+
+Returns true if the given nick refers to that in use by the connection.
+
+=cut
+
+sub is_nick_me
+{
+   my $self = shift;
+   my ( $nick ) = @_;
+
+   return $self->casefold_name( $nick ) eq $self->{nick_folded};
 }
 
 # Keep perl happy; keep Britain tidy
