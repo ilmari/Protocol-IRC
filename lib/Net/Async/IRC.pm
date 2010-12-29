@@ -21,11 +21,6 @@ use Net::Async::IRC::Message;
 
 use IO::Async::Timer::Countdown;
 
-use constant STATE_UNCONNECTED => 0; # No network connection
-use constant STATE_CONNECTING  => 1; # Awaiting network connection
-use constant STATE_CONNECTED   => 2; # Socket connected
-use constant STATE_LOGGEDIN    => 3; # USER/NICK send, server confirmed login
-
 use Encode qw( find_encoding );
 
 =head1 NAME
@@ -81,7 +76,7 @@ sub new
 
          $on_closed->() if $on_closed;
 
-         $self->{state} = STATE_UNCONNECTED;
+         $self->{state} = { connected => 0, loggedin => 0 };
       },
    );
 }
@@ -126,7 +121,7 @@ sub _init
    $self->{prefixflag_re} = qr/^[\@+]/;
    $self->{isupport}->{CHANMODES_LIST} = [qw( b k l imnpst )]; # TODO: ov
 
-   $self->{state} = STATE_UNCONNECTED;
+   $self->{state} = { connected => 0, loggedin => 0 };
 }
 
 =head1 PARAMETERS
@@ -245,7 +240,7 @@ sub setup_transport
    my $self = shift;
    $self->SUPER::setup_transport( @_ );
 
-   $self->{state} = STATE_CONNECTED;
+   $self->{state}{connected} = 1;
    $self->{pingtimer}->start if $self->{pingtimer} and $self->get_loop;
 }
 
@@ -253,7 +248,7 @@ sub teardown_transport
 {
    my $self = shift;
 
-   $self->{state} = STATE_UNCONNECTED;
+   $self->{state} = { connected => 0, loggedin => 0 };
    $self->{pingtimer}->stop if $self->{pingtimer} and $self->get_loop;
 
    $self->SUPER::teardown_transport( @_ );
@@ -262,12 +257,6 @@ sub teardown_transport
 =head1 METHODS
 
 =cut
-
-sub state
-{
-   my $self = shift;
-   return $self->{state};
-}
 
 =head2 $connect = $irc->is_connected
 
@@ -280,9 +269,7 @@ the C<is_loggedin> method.
 sub is_connected
 {
    my $self = shift;
-   my $state = $self->state;
-   return $state == STATE_CONNECTED ||
-          $state == STATE_LOGGEDIN;
+   return $self->{state}{connected};
 }
 
 =head2 $loggedin = $irc->is_loggedin
@@ -294,8 +281,7 @@ Returns true if the server has been logged in to.
 sub is_loggedin
 {
    my $self = shift;
-   my $state = $self->state;
-   return $state == STATE_LOGGEDIN;
+   return $self->{state}{loggedin};
 }
 
 =head2 $irc->connect( %args )
@@ -340,7 +326,7 @@ sub connect
    my $self = shift;
    my %args = @_;
 
-   $self->{state} == STATE_UNCONNECTED or croak "Cannot ->connect - not in unconnected state";
+   $self->{state}{connected} and croak "Cannot ->connect - not in unconnected state";
 
    my $loop = $self->get_loop or croak "Cannot ->connect a ".ref($self)." that is not in a Loop";
 
@@ -348,8 +334,6 @@ sub connect
    ref $on_connected eq "CODE" or croak "Expected 'on_connected' as CODE reference";
 
    my $on_error = delete $args{on_error};
-
-   $self->{state} = STATE_CONNECTING;
 
    $args{service}  ||= "6667";
    $args{socktype} ||= SOCK_STREAM;
@@ -369,8 +353,6 @@ sub connect
          my ( $msg ) = @_;
          chomp $msg;
 
-         $self->{state} = STATE_UNCONNECTED;
-
          if( $args{on_resolve_error} ) {
             $args{on_resolve_error}->( $msg );
          }
@@ -380,8 +362,6 @@ sub connect
       },
 
       on_connect_error => sub {
-         $self->{state} = STATE_UNCONNECTED;
-
          if( $args{on_connect_error} ) {
             $args{on_connect_error}->( @_ );
          }
@@ -443,7 +423,7 @@ sub login
    my $on_login = delete $args{on_login};
    ref $on_login eq "CODE" or croak "Expected 'on_login' as a CODE reference";
 
-   if( $self->{state} == STATE_CONNECTED ) {
+   if( $self->{state}{connected} ) {
       $self->send_message( "PASS", undef, $pass ) if defined $pass;
 
       $self->send_message( "USER", undef, $user, "0", "*", $realname );
@@ -452,7 +432,7 @@ sub login
 
       $self->{on_login} = $on_login;
    }
-   elsif( $self->{state} == STATE_UNCONNECTED ) {
+   else {
       $self->connect(
          %args,
 
@@ -467,9 +447,6 @@ sub login
             );
          },
       );
-   }
-   else {
-      croak "Cannot login - bad state $self->{state}";
    }
 }
 
@@ -787,14 +764,11 @@ sub change_nick
    my $self = shift;
    my ( $newnick ) = @_;
 
-   if( $self->{state} == STATE_UNCONNECTED or $self->{state} == STATE_CONNECTING ) {
+   if( !$self->{state}{connected} ) {
       $self->set_nick( $newnick );
    }
-   elsif( $self->{state} == STATE_CONNECTED or $self->{state} == STATE_LOGGEDIN ) {
-      $self->send_message( "NICK", undef, $newnick );
-   }
    else {
-      croak "Cannot change_nick - bad state $self->{state}";
+      $self->send_message( "NICK", undef, $newnick );
    }
 }
 
@@ -1347,7 +1321,7 @@ sub on_message_001
    my ( $message ) = @_;
 
    $self->{on_login}->( $self ) if defined $self->{on_login};
-   $self->{state} = STATE_LOGGEDIN;
+   $self->{state}{loggedin} = 1;
    undef $self->{on_login};
 
    # Don't eat it
