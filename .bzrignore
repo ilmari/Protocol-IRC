@@ -12,4 +12,4 @@ _build
 META.yml
 LICENSE
 README
-*.c
+MYMETA.yml
