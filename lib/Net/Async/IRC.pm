@@ -18,8 +18,6 @@ use Socket qw( SOCK_STREAM );
 
 use Net::Async::IRC::Message;
 
-use Encode qw( find_encoding );
-
 =head1 NAME
 
 C<Net::Async::IRC> - Use IRC with C<IO::Async>
@@ -54,17 +52,6 @@ The following named parameters may be passed to C<new> or C<configure>:
 
 =over 8
 
-=item on_message => CODE
-
-A CODE reference to the generic message handler; see C<MESSAGE HANDLING>
-below.
-
-=item on_message_* => CODE
-
-Any parameter whose name starts with C<on_message_> can be installed as a
-handler for a specific message, in preference to the generic handler. See
-C<MESSAGE HANDLING>.
-
 =item nick => STRING
 
 =item user => STRING
@@ -83,11 +70,6 @@ If logged in, changing the C<nick> property is equivalent to calling
 C<change_nick>. Changing the other properties will not take effect until the
 next login.
 
-=item encoding => STRING
-
-If supplied, sets an encoding to use to encode outgoing messages and decode
-incoming messages.
-
 =back
 
 =cut
@@ -96,8 +78,6 @@ sub configure
 {
    my $self = shift;
    my %args = @_;
-
-   $self->{$_} = delete $args{$_} for grep m/^on_message/, keys %args;
 
    for (qw( user realname )) {
       $self->{$_} = delete $args{$_} if exists $args{$_};
@@ -113,13 +93,6 @@ sub configure
 
    if( !defined $self->{realname} ) {
       $self->{realname} = "Net::Async::IRC client $VERSION";
-   }
-
-   if( exists $args{encoding} ) {
-      my $encoding = delete $args{encoding};
-      my $obj = find_encoding( $encoding );
-      defined $obj or croak "Cannot handle an encoding of '$encoding'";
-      $self->{encoder} = $obj;
    }
 
    $self->SUPER::configure( %args );
@@ -343,168 +316,6 @@ sub change_nick
    }
 }
 
-=head1 MESSAGE HANDLING
-
-Every incoming message from the IRC server causes a sequence of message
-handling to occur. First, the message is parsed, and a hash of data about it
-is created; this is called the hints hash. The message and this hash are then
-passed down a sequence of potential handlers. 
-
-Each handler indicates by return value, whether it considers the message to
-have been handled. Processing of the message is not interrupted the first time
-a handler declares to have handled a message. Instead, the hints hash is marked
-to say it has been handled. Later handlers can still inspect the message or its
-hints, using this information to decide if they wish to take further action.
-
-A message with a command of C<COMMAND> will try handlers in following places:
-
-=over 4
-
-=item 1.
-
-A CODE ref in a parameter called C<on_message_COMMAND>
-
- $on_message_COMMAND->( $irc, $message, \%hints )
-
-=item 2.
-
-A method called C<on_message_COMMAND>
-
- $irc->on_message_COMMAND( $message, \%hints )
-
-=item 3.
-
-A CODE ref in a parameter called C<on_message>
-
- $on_message->( $irc, 'COMMAND', $message, \%hints )
-
-=item 4.
-
-A method called C<on_message>
-
- $irc->on_message( 'COMMAND', $message, \%hints )
-
-=back
-
-Certain commands are handled internally by methods on the base
-C<Net::Async::IRC> class itself. These may cause other hints hash keys to be
-created, or to invoke other handler methods. These are documented below.
-
-=cut
-
-=head2 Message Hints
-
-The following keys will be present in any message hint hash:
-
-=over 8
-
-=item handled => BOOL
-
-Initially false. Will be set to true the first time a handler returns a true
-value.
-
-=item prefix_nick => STRING
-
-=item prefix_user => STRING
-
-=item prefix_host => STRING
-
-Values split from the message prefix; see the C<Net::Async::IRC::Message>
-C<prefix_split> method.
-
-=item prefix_name => STRING
-
-Usually the prefix nick, or the hostname in case the nick isn't defined
-(usually on server messages).
-
-=item prefix_is_me => BOOL
-
-True if the nick mentioned in the prefix refers to this connection.
-
-=back
-
-Added to this set, will be all the values returned by the message's
-C<named_args> method. Some of these values may cause yet more values to be
-generated.
-
-If the message type defines a C<target_name>:
-
-=over 8
-
-=item * target_type => STRING
-
-Either C<channel> or C<user>, as returned by C<classify_name>.
-
-=item * target_is_me => BOOL
-
-True if the target name is a user and refers to this connection.
-
-=back
-
-Finally, any key whose name ends in C<_nick> or C<_name> will have a
-corresponding key added with C<_folded> suffixed on its name, containing the
-value casefolded using C<casefold_name>. This is for the convenience of string
-comparisons, hash keys, etc..
-
-=cut
-
-# Try to run the named method, returning undef if the method doesn't exist
-sub _invoke
-{
-   my $self = shift;
-   my $method = shift;
-
-   return $self->{$method}->( $self, @_ ) if $self->{$method};
-   return $self->$method( @_ ) if $self->can( $method );
-   return undef;
-}
-
-sub incoming_message
-{
-   my $self = shift;
-   my ( $message ) = @_;
-
-   my $command = $message->command;
-
-   my ( $prefix_nick, $prefix_user, $prefix_host ) = $message->prefix_split;
-
-   my $hints = {
-      handled => 0,
-
-      prefix_nick  => $prefix_nick,
-      prefix_user  => $prefix_user,
-      prefix_host  => $prefix_host,
-      # Most of the time this will be "nick", except for special messages from the server
-      prefix_name  => defined $prefix_nick ? $prefix_nick : $prefix_host,
-      prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
-   };
-
-   if( my $named_args = $message->named_args ) {
-      $hints->{$_} = $named_args->{$_} for keys %$named_args;
-   }
-
-   if( defined $hints->{text} and $self->{encoder} ) {
-      $hints->{text} = $self->{encoder}->decode( $hints->{text} );
-   }
-
-   if( defined( my $target_name = $hints->{target_name} ) ) {
-      $hints->{target_is_me} = $self->is_nick_me( $target_name );
-
-      my $target_type = $self->classify_name( $target_name );
-      $hints->{target_type} = $target_type;
-   }
-
-   my $prepare_method = "prepare_hints_$command";
-   $self->$prepare_method( $message, $hints ) if $self->can( $prepare_method );
-
-   foreach my $k ( grep { m/_nick$/ or m/_name$/ } keys %$hints ) {
-      $hints->{"${k}_folded"} = $self->casefold_name( $hints->{$k} );
-   }
-
-   $self->_invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
-   $self->_invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
-}
-
 =head1 PER-MESSAGE SPECIFICS
 
 Because of the wide variety of messages in IRC involving various types of data
@@ -713,152 +524,6 @@ sub on_message_NICK
    }
 
    return 0;
-}
-
-sub on_message_NOTICE
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-   return $self->_on_message_text( $message, $hints, 1 );
-}
-
-sub on_message_PRIVMSG
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-   return $self->_on_message_text( $message, $hints, 0 );
-}
-
-=head2 NOTICE and PRIVMSG
-
-Because C<NOTICE> and C<PRIVMSG> are so similar, they are handled together by
-synthesized events called C<text>, C<ctcp> and C<ctcpreply>. Depending on the
-contents of the text, and whether it was supplied in a C<PRIVMSG> or a
-C<NOTICE>, one of these three events will be created. 
-
-In all cases, the hints hash will contain a C<is_notice> key being true or
-false, depending on whether the original messages was a C<NOTICE> or a
-C<PRIVMSG>, a C<target_name> key containing the message target name, a
-case-folded version of the name in a C<target_name_folded> key, and a
-classification of the target type in a C<target_type> key.
-
-For the C<user> target type, it will contain a boolean in C<target_is_me> to
-indicate if the target of the message is the user represented by this
-connection.
-
-For the C<channel> target type, it will contain a C<restriction> key
-containing the channel message restriction, if present.
-
-For normal C<text> messages, it will contain a key C<text> containing the
-actual message text.
-
-For either CTCP message type, it will contain keys C<ctcp_verb> and
-C<ctcp_args> with the parsed message. The C<ctcp_verb> will contain the first
-space-separated token, and C<ctcp_args> will be a string containing the rest
-of the line, otherwise unmodified. This type of message is also subject to a
-special stage of handler dispatch, involving the CTCP verb string. For
-messages with C<VERB> as the verb, the following are tried. C<CTCP> may stand
-for either C<ctcp> or C<ctcpreply>.
-
-=over 4
-
-=item 1.
-
-A CODE ref in a parameter called C<on_message_CTCP_VERB>
-
- $on_message_CTCP_VERB->( $irc, $message, \%hints )
-
-=item 2.
-
-A method called C<on_message_CTCP_VERB>
-
- $irc->on_message_CTCP_VERB( $message, \%hints )
-
-=item 3.
-
-A CODE ref in a parameter called C<on_message_CTCP>
-
- $on_message_CTCP->( $irc, 'VERB', $message, \%hints )
-
-=item 4.
-
-A method called C<on_message_CTCP>
-
- $irc->on_message_CTCP( 'VERB', $message, \%hintss )
-
-=item 5.
-
-A CODE ref in a parameter called C<on_message>
-
- $on_message->( $irc, 'CTCP VERB', $message, \%hints )
-
-=item 6.
-
-A method called C<on_message>
-
- $irc->on_message( 'CTCP VERB', $message, \%hints )
-
-=back
-
-=cut
-
-sub _on_message_text
-{
-   my $self = shift;
-   my ( $message, $hints, $is_notice ) = @_;
-
-   my %hints = (
-      %$hints,
-      synthesized => 1,
-      is_notice => $is_notice,
-   );
-
-   # TODO: In client->server messages this might be a comma-separated list
-   my $target = delete $hints{targets};
-
-   my $prefixflag_re = $self->isupport( 'prefixflag_re' );
-
-   my $restriction = "";
-   while( $target =~ m/^$prefixflag_re/ ) {
-      $restriction .= substr( $target, 0, 1, "" );
-   }
-
-   $hints{target_name} = $target;
-   $hints{target_name_folded} = $self->casefold_name( $target );
-
-   my $type = $hints{target_type} = $self->classify_name( $target );
-
-   if( $type eq "channel" ) {
-      $hints{restriction} = $restriction;
-      $hints{target_is_me} = '';
-   }
-   elsif( $type eq "user" ) {
-      # TODO: user messages probably can't have restrictions. What to do
-      # if we got one?
-      $hints{target_is_me} = $self->is_nick_me( $target );
-   }
-
-   my $text = $hints->{text};
-
-   if( $text =~ m/^\x01(.*)\x01$/ ) {
-      ( my $verb, $text ) = split( m/ /, $1, 2 );
-      $hints{ctcp_verb} = $verb;
-      $hints{ctcp_args} = $text;
-
-      my $ctcptype = $is_notice ? "ctcpreply" : "ctcp";
-
-      $self->_invoke( "on_message_${ctcptype}_$verb", $message, \%hints ) and $hints{handled} = 1;
-      $self->_invoke( "on_message_${ctcptype}", $verb, $message, \%hints ) and $hints{handled} = 1;
-      $self->_invoke( "on_message", "$ctcptype $verb", $message, \%hints ) and $hints{handled} = 1;
-   }
-   else {
-      $hints{text} = $text;
-
-      $self->_invoke( "on_message_text", $message, \%hints ) and $hints{handled} = 1;
-      $self->_invoke( "on_message", "text", $message, \%hints ) and $hints{handled} = 1;
-   }
-
-   return $hints{handled};
 }
 
 sub on_message_001
