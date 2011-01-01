@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2008-2010 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2008-2011 -- leonerd@leonerd.org.uk
 
 package Net::Async::IRC;
 
@@ -169,26 +169,12 @@ sub connect
 
    $self->is_connected and croak "Cannot ->connect - not in unconnected state";
 
-   my $loop = $self->get_loop or croak "Cannot ->connect a ".ref($self)." that is not in a Loop";
-
-   my $on_connected = delete $args{on_connected};
-   ref $on_connected eq "CODE" or croak "Expected 'on_connected' as CODE reference";
-
    my $on_error = delete $args{on_error};
 
-   $args{service}  ||= "6667";
-   $args{socktype} ||= SOCK_STREAM;
+   $self->SUPER::connect(
+      service => "6667",
 
-   $loop->connect(
       %args,
-
-      on_stream => sub {
-         my ( $stream ) = @_;
-
-         $self->configure( transport => $stream );
-
-         $on_connected->( $self );
-      },
 
       on_resolve_error => sub {
          my ( $msg ) = @_;
