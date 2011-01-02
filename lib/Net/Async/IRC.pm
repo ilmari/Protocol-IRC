@@ -18,7 +18,7 @@ use Socket qw( SOCK_STREAM );
 
 =head1 NAME
 
-C<Net::Async::IRC> - Use IRC with C<IO::Async>
+C<Net::Async::IRC> - use IRC with C<IO::Async>
 
 =head1 SYNOPSIS
 
