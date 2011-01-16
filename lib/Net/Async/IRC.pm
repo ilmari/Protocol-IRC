@@ -171,9 +171,9 @@ sub connect
 
    my $on_error = delete $args{on_error};
 
-   $self->SUPER::connect(
-      service => "6667",
+   $args{service} ||= "6667";
 
+   $self->SUPER::connect(
       %args,
 
       on_resolve_error => sub {
