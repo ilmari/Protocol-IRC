@@ -751,11 +751,6 @@ sub on_message_376 # RPL_ENDOFMOTD
    $self->pull_list_and_invoke( "motd", $message, $hints );
 }
 
-# Keep perl happy; keep Britain tidy
-1;
-
-__END__
-
 =head1 SEE ALSO
 
 =over 4
@@ -769,3 +764,7 @@ L<http://tools.ietf.org/html/rfc2812> - Internet Relay Chat: Client Protocol
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
+
+=cut
+
+0x55AA;
