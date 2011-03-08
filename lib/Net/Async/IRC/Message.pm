@@ -438,6 +438,15 @@ __DATA__
 004=RPL_MYINFO          | serverhost,serverversion,usermodes,channelmodes
 005=RPL_ISUPPORT        | 1..-2=isupport,-1=text
 
+250=RPL_STATSCONN       | text
+251=RPL_LUSERCLIENT     | text
+252=RPL_LUSEROP         | count,text
+253=RPL_LUSERUNKNOWN    | count,text
+254=RPL_LUSERCHANNELS   | count,text
+255=RPL_LUSERME         | text
+265=RPL_LOCALUSERS      | count,max_count,text
+266=RPL_GLOBALUSERS     | count,max_count,text
+
 301=RPL_AWAY            | target_name,text
 305=RPL_UNAWAY          | text
 306=RPL_NOWAWAY         | text
@@ -478,6 +487,7 @@ __DATA__
 372=RPL_MOTD            | text
 375=RPL_MOTDSTART       | text
 376=RPL_ENDOFMOTD       |
+378=RPL_WHOISHOST       | target_name,text
 
 401=ERR_NOSUCHNICK              | target_name,text
 402=ERR_NOSUCHSERVER            | server_name,text
