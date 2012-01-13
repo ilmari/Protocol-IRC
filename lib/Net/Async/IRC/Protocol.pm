@@ -416,7 +416,8 @@ sub _set_isupport
       if( $name eq "PREFIX" ) {
          my $prefix = $value;
 
-         my ( $prefix_modes, $prefix_flags ) = $prefix =~ m/^\(([a-z]+)\)(.+)$/i;
+         my ( $prefix_modes, $prefix_flags ) = $prefix =~ m/^\(([a-z]+)\)(.+)$/i
+            or warn( "Unable to parse PREFIX=$value" ), next;
 
          $self->{isupport}{prefix_modes} = $prefix_modes;
          $self->{isupport}{prefix_flags} = $prefix_flags;
