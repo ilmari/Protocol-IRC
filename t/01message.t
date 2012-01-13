@@ -3,7 +3,7 @@
 use strict;
 
 use Test::More tests => 42;
-use Test::Exception;
+use Test::Fatal;
 
 use Net::Async::IRC::Message;
 
@@ -90,26 +90,26 @@ test_line "With :final",
    args    => [ ":final" ],
    stream  => "MESSAGE ::final";
 
-throws_ok( sub { Net::Async::IRC::Message->new( "some command" ) },
-           qr/^Command must be just letters or three digits/,
-           'Command with spaces fails' );
+like( exception { Net::Async::IRC::Message->new( "some command" ) },
+      qr/^Command must be just letters or three digits/,
+      'Command with spaces fails' );
 
-throws_ok( sub { Net::Async::IRC::Message->new( "cmd", "prefix with spaces" ) },
-           qr/^Prefix must not contain whitespace/,
-           'Command with spaces fails' );
+like( exception { Net::Async::IRC::Message->new( "cmd", "prefix with spaces" ) },
+     qr/^Prefix must not contain whitespace/,
+     'Command with spaces fails' );
 
-throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, "foo\x0d\x{0d}bar" ) },
-           qr/^Final argument must not contain a linefeed/,
-           'Final with linefeed fails' );
+like( exception { Net::Async::IRC::Message->new( "cmd", undef, "foo\x0d\x{0d}bar" ) },
+     qr/^Final argument must not contain a linefeed/,
+     'Final with linefeed fails' );
 
-throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, undef ) },
-           qr/^Final argument must be defined/,
-           'Final undef fails' );
+like( exception { Net::Async::IRC::Message->new( "cmd", undef, undef ) },
+     qr/^Final argument must be defined/,
+     'Final undef fails' );
 
-throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, "foo bar", "splot wibble" ) },
-           qr/^Argument must not contain whitespace/,
-           'Argument with whitespace fails' );
+like( exception { Net::Async::IRC::Message->new( "cmd", undef, "foo bar", "splot wibble" ) },
+     qr/^Argument must not contain whitespace/,
+     'Argument with whitespace fails' );
 
-throws_ok( sub { Net::Async::IRC::Message->new( "cmd", undef, undef, "last" ) },
-           qr/^Argument must be defined/,
-           'Argument undef fails' );
+like( exception { Net::Async::IRC::Message->new( "cmd", undef, undef, "last" ) },
+     qr/^Argument must be defined/,
+     'Argument undef fails' );

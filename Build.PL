@@ -12,8 +12,8 @@ my $build = Module::Build->new(
    build_requires => {
       'IO::Async' => '0.30',
       'IO::Async::Test' => 0.14,
+      'Test::Fatal' => 0,
       'Test::More' => 0,
-      'Test::Exception' => 0,
    },
    license => 'perl',
    create_makefile_pl => 'traditional',

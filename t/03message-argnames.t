@@ -3,7 +3,6 @@
 use strict;
 
 use Test::More tests => 13;
-use Test::Exception;
 
 use Net::Async::IRC::Message;
 
