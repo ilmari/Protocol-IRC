@@ -37,6 +37,8 @@ An object in this class represents a single IRC message, either received from
 or to be sent to the server. These objects are immutable once constructed, but
 provide a variety of methods to access the contained information.
 
+This class also understands IRCv3 message tags.
+
 =cut
 
 =head1 CONSTRUCTOR
@@ -56,6 +58,18 @@ sub new_from_line
    my $class = shift;
    my ( $line ) = @_;
 
+   my %tags;
+   if( $line =~ s/^\@([^ ]+) +// ) {
+      foreach ( split m/;/, $1 ) {
+         if( m/^([^=]+)=(.*)$/ ) {
+            $tags{$1} = $2;
+         }
+         else {
+            $tags{$_} = undef;
+         }
+      }
+   }
+
    my $prefix;
    if( $line =~ s/^:([^ ]+) +// ) {
       $prefix = $1;
@@ -68,7 +82,10 @@ sub new_from_line
 
    my $command = shift @args;
 
-   return $class->new( $command, $prefix, @args );
+   my $self = $class->new( $command, $prefix, @args );
+   $self->add_tag( $_ => $tags{$_} ) for keys %tags;
+
+   return $self;
 }
 
 =head2 $message = Protocol::IRC::Message->new( $command, $prefix, @args )
@@ -76,6 +93,9 @@ sub new_from_line
 Returns a new C<Protocol::IRC::Message> object, intialised from the given
 components. Most typically used to create a new object to send to the server
 using C<stream_to_line>.
+
+This constructor form does not directly support IRCv3 tags, but these can be
+applied after construction by using C<add_tag>.
 
 =cut
 
@@ -114,6 +134,7 @@ sub new
       command => $command,
       prefix  => $prefix,
       args    => \@args,
+      tags    => {},
    };
 
    return bless $self, $class;
@@ -226,6 +247,12 @@ sub stream_to_line
    my $self = shift;
 
    my $line = "";
+
+   if( keys %{ $self->{tags} } ) {
+      my $tags = $self->{tags};
+      $line .= "\@" . join( ";", map { defined $tags->{$_} ? "$_=$tags->{$_}" : $_ } keys %$tags ) . " ";
+   }
+
    if( defined $self->{prefix} ) {
       $line .= ":$self->{prefix} ";
    }
@@ -413,6 +440,54 @@ sub named_args
    }
 
    return \%named_args;
+}
+
+=head2 $tags = $message->tags
+
+Returns a hash reference containing IRCv3 message tags. This is a reference to
+the hash stored directly by the object itself, so the caller should be careful
+not to modify it.
+
+=cut
+
+sub tags
+{
+   my $self = shift;
+   return $self->{tags}
+}
+
+=head2 $message->add_tag( $key, $value )
+
+Adds an IRCv3 message tag.
+
+=cut
+
+sub add_tag
+{
+   my $self = shift;
+   my ( $key, $value ) = @_;
+
+   $key =~ m{^[a-zA-Z0-9./-]+$} or
+      croak "Tag key '$key' is invalid";
+
+   defined $value and $value =~ m{[ ;]} and
+      croak "Tag value '$value' for key '$key' is invalid";
+
+   $self->{tags}->{$key} = $value;
+}
+
+=head2 $message->remove_tag( $key )
+
+Removes an IRCv3 message tag.
+
+=cut
+
+sub remove_tag
+{
+   my $self = shift;
+   my ( $key ) = @_;
+
+   delete $self->{tags}->{$key};
 }
 
 =head1 AUTHOR
