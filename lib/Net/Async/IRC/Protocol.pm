@@ -14,7 +14,7 @@ use base qw( IO::Async::Protocol::LineStream );
 
 use Carp;
 
-use Net::Async::IRC::Message;
+use Protocol::IRC::Message;
 
 use Encode qw( find_encoding );
 use Time::HiRes qw( time );
@@ -253,7 +253,7 @@ sub on_read_line
    my $self = shift;
    my ( $line ) = @_;
 
-   my $message = Net::Async::IRC::Message->new_from_line( $line );
+   my $message = Protocol::IRC::Message->new_from_line( $line );
 
    my $pingtimer = $self->{pingtimer};
 
@@ -284,7 +284,7 @@ sub on_read_line
 
 =head2 $irc->send_message( $message )
 
-Sends a message to the peer from the given C<Net::Async::IRC::Message>
+Sends a message to the peer from the given C<Protocol::IRC::Message>
 object.
 
 =head2 $irc->send_message( $command, $prefix, @args )
@@ -308,14 +308,14 @@ sub send_message
       my ( $command, $prefix, @args ) = @_;
 
       if( my $encoder = $self->{encoder} ) {
-         my $argnames = Net::Async::IRC::Message->arg_names( $command );
+         my $argnames = Protocol::IRC::Message->arg_names( $command );
 
          if( defined( my $i = $argnames->{text} ) ) {
             $args[$i] = $encoder->encode( $args[$i] ) if defined $args[$i];
          }
       }
 
-      $message = Net::Async::IRC::Message->new( $command, $prefix, @args );
+      $message = Protocol::IRC::Message->new( $command, $prefix, @args );
    }
 
    $self->write_line( $message->stream_to_line );
@@ -699,7 +699,7 @@ value.
 
 =item prefix_host => STRING
 
-Values split from the message prefix; see the C<Net::Async::IRC::Message>
+Values split from the message prefix; see the C<Protocol::IRC::Message>
 C<prefix_split> method.
 
 =item prefix_name => STRING

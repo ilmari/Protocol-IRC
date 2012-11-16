@@ -3,7 +3,7 @@
 #
 #  (C) Paul Evans, 2008-2012 -- leonerd@leonerd.org.uk
 
-package Net::Async::IRC::Message;
+package Protocol::IRC::Message;
 
 use strict;
 use warnings;
@@ -15,13 +15,13 @@ our @CARP_NOT = qw( Net::Async::IRC );
 
 =head1 NAME
 
-C<Net::Async::IRC::Message> - encapsulates a single IRC message
+C<Protocol::IRC::Message> - encapsulates a single IRC message
 
 =head1 SYNOPSIS
 
- use Net::Async::IRC::Message;
+ use Protocol::IRC::Message;
 
- my $hello = Net::Async::IRC::Message->new(
+ my $hello = Protocol::IRC::Message->new(
     "PRIVMSG",
     undef,
     "World",
@@ -43,9 +43,9 @@ provide a variety of methods to access the contained information.
 
 =cut
 
-=head2 $message = Net::Async::IRC::Message->new_from_line( $line )
+=head2 $message = Protocol::IRC::Message->new_from_line( $line )
 
-Returns a new C<Net::Async::IRC::Message> object, constructed by parsing the
+Returns a new C<Protocol::IRC::Message> object, constructed by parsing the
 given IRC line. Most typically used to create a new object to represent a
 message received from the server.
 
@@ -71,9 +71,9 @@ sub new_from_line
    return $class->new( $command, $prefix, @args );
 }
 
-=head2 $message = Net::Async::IRC::Message->new( $command, $prefix, @args )
+=head2 $message = Protocol::IRC::Message->new( $command, $prefix, @args )
 
-Returns a new C<Net::Async::IRC::Message> object, intialised from the given
+Returns a new C<Protocol::IRC::Message> object, intialised from the given
 components. Most typically used to create a new object to send to the server
 using C<stream_to_line>.
 

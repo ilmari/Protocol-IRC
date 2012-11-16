@@ -5,7 +5,7 @@ use strict;
 use Test::More tests => 42;
 use Test::Fatal;
 
-use Net::Async::IRC::Message;
+use Protocol::IRC::Message;
 
 sub test_line
 {
@@ -13,7 +13,7 @@ sub test_line
    my $line = shift;
    my %asserts = @_;
 
-   my $msg = Net::Async::IRC::Message->new_from_line( $line );
+   my $msg = Protocol::IRC::Message->new_from_line( $line );
 
    exists $asserts{command} and
       is( $msg->command, $asserts{command}, "$testname command" );
@@ -28,10 +28,10 @@ sub test_line
       is( $msg->stream_to_line, $asserts{stream}, "$testname restream" );
 }
 
-my $msg = Net::Async::IRC::Message->new( "command", "prefix", "arg1", "arg2" );
+my $msg = Protocol::IRC::Message->new( "command", "prefix", "arg1", "arg2" );
 
 ok( defined $msg, 'defined $msg' );
-isa_ok( $msg, "Net::Async::IRC::Message", '$msg isa Net::Async::IRC::Message' );
+isa_ok( $msg, "Protocol::IRC::Message", '$msg isa Protocol::IRC::Message' );
 
 is( $msg->command, "COMMAND", '$msg->command' );
 is( $msg->prefix,  "prefix",  '$msg->prefix' );
@@ -90,26 +90,26 @@ test_line "With :final",
    args    => [ ":final" ],
    stream  => "MESSAGE ::final";
 
-like( exception { Net::Async::IRC::Message->new( "some command" ) },
+like( exception { Protocol::IRC::Message->new( "some command" ) },
       qr/^Command must be just letters or three digits/,
       'Command with spaces fails' );
 
-like( exception { Net::Async::IRC::Message->new( "cmd", "prefix with spaces" ) },
+like( exception { Protocol::IRC::Message->new( "cmd", "prefix with spaces" ) },
      qr/^Prefix must not contain whitespace/,
      'Command with spaces fails' );
 
-like( exception { Net::Async::IRC::Message->new( "cmd", undef, "foo\x0d\x{0d}bar" ) },
+like( exception { Protocol::IRC::Message->new( "cmd", undef, "foo\x0d\x{0d}bar" ) },
      qr/^Final argument must not contain a linefeed/,
      'Final with linefeed fails' );
 
-like( exception { Net::Async::IRC::Message->new( "cmd", undef, undef ) },
+like( exception { Protocol::IRC::Message->new( "cmd", undef, undef ) },
      qr/^Final argument must be defined/,
      'Final undef fails' );
 
-like( exception { Net::Async::IRC::Message->new( "cmd", undef, "foo bar", "splot wibble" ) },
+like( exception { Protocol::IRC::Message->new( "cmd", undef, "foo bar", "splot wibble" ) },
      qr/^Argument must not contain whitespace/,
      'Argument with whitespace fails' );
 
-like( exception { Net::Async::IRC::Message->new( "cmd", undef, undef, "last" ) },
+like( exception { Protocol::IRC::Message->new( "cmd", undef, undef, "last" ) },
      qr/^Argument must be defined/,
      'Argument undef fails' );
