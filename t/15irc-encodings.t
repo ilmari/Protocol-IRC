@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use utf8;
 
 use Test::More;
 use IO::Async::Test;
@@ -21,12 +22,14 @@ testing_loop( $loop );
 my ( $S1, $S2 ) = IO::Async::OS->socketpair() or die "Cannot create socket pair - $!";
 
 my @textmessages;
+my @quitmessages;
 
 my $irc = Net::Async::IRC::Protocol->new(
    transport => IO::Async::Stream->new( handle => $S1 ),
    on_message => sub {
       my ( $self, $command, $message, $hints ) = @_;
       push @textmessages, [ $message, $hints ] if $command eq "text";
+      push @quitmessages, [ $message, $hints ] if $command eq "QUIT";
       return 1;
    },
    encoding => "UTF-8",
@@ -74,5 +77,14 @@ wait_for_stream { $serverstream =~ m/$CRLF/ } $S2 => $serverstream;
 
 is( $serverstream, "PRIVMSG #arabic :$octets$CRLF",
                    "Server stream after sending PRIVMSG with encoding" );
+
+$S2->syswrite( ':Someone!theiruser@their.host QUIT :' . $octets . $CRLF );
+
+wait_for { @quitmessages };
+
+( $msg, $hints ) = @{ shift @quitmessages };
+
+is( $msg->command, "QUIT", '$msg->command for QUIT with encoding' );
+is( $hints->{text}, "مرحبا العالم", '$hints->{text} for QUIT with encoding' );
 
 done_testing;
