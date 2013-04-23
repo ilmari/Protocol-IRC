@@ -14,7 +14,7 @@ my $build = Module::Build->new(
       'IO::Async::OS' => 0,
       'IO::Async::Test' => 0.14,
       'Test::Fatal' => 0,
-      'Test::More' => 0,
+      'Test::More' => '0.88', # done_testing
    },
    auto_configure_requires => 0, # Don't add M::B to configure_requires
    license => 'perl',

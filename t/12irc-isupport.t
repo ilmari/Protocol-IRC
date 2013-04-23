@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
-use Test::More tests => 26;
+use Test::More;
 
 use Net::Async::IRC::Protocol;
 
@@ -66,3 +67,5 @@ is( $irc->casefold_name( "FOO[AWAY]" ), "foo[away]", 'casefold_name FOO[AWAY] un
 
 # Now the generated ones from CHANMODES
 is_deeply( $irc->isupport( "chanmodes_list" ), [qw( beI k l imnpsta )], 'ISUPPORT chanmodes_list is [qw( beI k l imnpsta )]' );
+
+done_testing;

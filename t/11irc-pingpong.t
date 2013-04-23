@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
-use Test::More tests => 4;
+use Test::More;
 
 use Time::HiRes qw(); # Empty import, just there to let IO::Async and Net::Async::IRC use it
 
@@ -81,3 +82,5 @@ ok( $lag >= 0 && $lag <= 1, 'client acknowledges PONG reply' );
 
 wait_for { defined $pingout };
 ok( $pingout, 'client reports PING timeout' );
+
+done_testing;

@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
-use Test::More tests => 17;
+use Test::More;
 use IO::Async::Test;
 use IO::Async::OS;
 use IO::Async::Loop;
@@ -211,3 +212,5 @@ is_deeply( $modes,
              { type => 'occupant', sense => -1, mode => "h", flag => '%', nick => "HalfOp", nick_folded => "halfop", },
              { type => 'occupant', sense =>  1, mode => "o", flag => '@', nick => "FullOp", nick_folded => "fullop" } ],
            '$modes[chanmode] for -lh+o HalfOp FullOp' );
+
+done_testing;

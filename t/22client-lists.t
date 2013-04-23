@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
-use Test::More tests => 6;
+use Test::More;
 use IO::Async::Test;
 use IO::Async::OS;
 use IO::Async::Loop;
@@ -111,3 +112,5 @@ is_deeply( $hints, { prefix_nick  => undef,
                      },
                      synthesized  => 1,
                      handled      => 1 }, '$hints for names' );
+
+done_testing;

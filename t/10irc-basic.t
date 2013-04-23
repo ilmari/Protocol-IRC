@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
-use Test::More tests => 11;
+use Test::More;
 use IO::Async::Test;
 use IO::Async::OS;
 use IO::Async::Loop;
@@ -68,3 +69,5 @@ $serverstream = "";
 wait_for_stream { $serverstream =~ m/$CRLF/ } $S2 => $serverstream;
 
 is( $serverstream, "PONG pingarg$CRLF", 'Client replies PING with PONG' );
+
+done_testing;

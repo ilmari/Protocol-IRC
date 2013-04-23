@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
-use Test::More tests => 5;
+use Test::More;
 use IO::Async::Test;
 use IO::Async::OS;
 use IO::Async::Loop;
@@ -73,3 +74,5 @@ wait_for_stream { $serverstream =~ m/$CRLF/ } $S2 => $serverstream;
 
 is( $serverstream, "PRIVMSG #arabic :$octets$CRLF",
                    "Server stream after sending PRIVMSG with encoding" );
+
+done_testing;

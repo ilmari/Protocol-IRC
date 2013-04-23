@@ -1,12 +1,12 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
+use Test::More;
 use IO::Async::Test;
 use IO::Async::Loop;
 use IO::Async::Stream; # placate IO::Async bug - shouldn't be necessary
-
-use Test::More tests => 10;
 
 use IO::Socket::INET;
 
@@ -94,3 +94,5 @@ $newclient->syswrite( ":irc.example.com 004 MyNick irc.example.com TestIRC iow l
 wait_for { defined $irc->server_info( "channelmodes" ) };
 
 is( $irc->server_info( "channelmodes" ), "lvhopsmntikr", 'server_info channelmodes' );
+
+done_testing;

@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
-use Test::More tests => 45;
+use Test::More;
 use IO::Async::Test;
 use IO::Async::OS;
 use IO::Async::Loop;
@@ -330,3 +331,5 @@ $serverstream = "";
 wait_for_stream { $serverstream =~ m/$CRLF/ } $S2 => $serverstream;
 
 is( $serverstream, "NOTICE target :\001ACTION replies\001$CRLF", 'server stream after send_ctcp' );
+
+done_testing;

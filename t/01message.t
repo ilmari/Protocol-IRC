@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
-use Test::More tests => 50;
+use Test::More;
 use Test::Fatal;
 
 use Protocol::IRC::Message;
@@ -143,3 +144,5 @@ like( exception { $msg->add_tag('invalid_key') },
 like( exception { $msg->add_tag('valid-key', 'invalid;value') },
     qr/^Tag value 'invalid;value' for key 'valid-key' is invalid/,
     'attempt to add key with invalid value fails');
+
+done_testing;
