@@ -117,6 +117,13 @@ sub _init
    $self->{isupport}{chanmodes_list} = [qw( b k l imnpst )]; # TODO: ov
 }
 
+# for Protocol::IRC
+sub encoder
+{
+   my $self = shift;
+   return $self->{encoder};
+}
+
 =head1 PARAMETERS
 
 The following named parameters may be passed to C<new> or C<configure>:

@@ -122,8 +122,8 @@ sub on_read
          $hints->{$_} = $named_args->{$_} for keys %$named_args;
       }
 
-      if( defined $hints->{text} and $self->{encoder} ) {
-         $hints->{text} = $self->{encoder}->decode( $hints->{text} );
+      if( defined $hints->{text} and my $encoder = $self->encoder ) {
+         $hints->{text} = $encoder->decode( $hints->{text} );
       }
 
       if( defined( my $target_name = $hints->{target_name} ) ) {
@@ -167,7 +167,7 @@ sub send_message
    else {
       my ( $command, $prefix, @args ) = @_;
 
-      if( my $encoder = $self->{encoder} ) {
+      if( my $encoder = $self->encoder ) {
          my $argnames = Protocol::IRC::Message->arg_names( $command );
 
          if( defined( my $i = $argnames->{text} ) ) {
@@ -230,6 +230,17 @@ Requests the byte string to be sent to the peer
 =cut
 
 sub write { croak "Attemped to invoke abstract ->write on " . ref $_[0] }
+
+=head2 $encoder = $irc->encoder
+
+Optional. If supplied, returns an L<Encode> object used to encode or decode
+the bytes appearing in a C<text> field of a message. If set, all text strings
+will be returned, and should be given, as Unicode strings. They will be
+encoded or decoded using this object.
+
+=cut
+
+sub encoder { undef }
 
 =head1 AUTHOR
 
