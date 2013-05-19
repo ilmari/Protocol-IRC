@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2010-2012 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2010-2013 -- leonerd@leonerd.org.uk
 
 package Net::Async::IRC::Protocol;
 
@@ -10,7 +10,7 @@ use warnings;
 
 our $VERSION = '0.06';
 
-use base qw( IO::Async::Protocol::LineStream );
+use base qw( IO::Async::Protocol::Stream Protocol::IRC );
 
 use Carp;
 
@@ -248,59 +248,17 @@ sub is_loggedin
    return $self->{state}{loggedin};
 }
 
-sub on_read_line
+sub on_read
 {
    my $self = shift;
-   my ( $line ) = @_;
-
-   my $message = Protocol::IRC::Message->new_from_line( $line );
+   my ( $buffref, $eof ) = @_;
 
    my $pingtimer = $self->{pingtimer};
 
    $pingtimer->is_running ? $pingtimer->reset : $pingtimer->start;
 
-   $self->incoming_message( $message );
-
-   return 1;
-}
-
-=head2 $irc->send_message( $message )
-
-Sends a message to the peer from the given C<Protocol::IRC::Message>
-object.
-
-=head2 $irc->send_message( $command, $prefix, @args )
-
-Sends a message to the peer directly from the given arguments.
-
-=cut
-
-sub send_message
-{
-   my $self = shift;
-
-   $self->is_connected or croak "Cannot send message without being connected";
-
-   my $message;
-
-   if( @_ == 1 ) {
-      $message = shift;
-   }
-   else {
-      my ( $command, $prefix, @args ) = @_;
-
-      if( my $encoder = $self->{encoder} ) {
-         my $argnames = Protocol::IRC::Message->arg_names( $command );
-
-         if( defined( my $i = $argnames->{text} ) ) {
-            $args[$i] = $encoder->encode( $args[$i] ) if defined $args[$i];
-         }
-      }
-
-      $message = Protocol::IRC::Message->new( $command, $prefix, @args );
-   }
-
-   $self->write_line( $message->stream_to_line );
+   $self->Protocol::IRC::on_read( $$buffref );
+   return 0;
 }
 
 =head2 $irc->send_ctcp( $prefix, $target, $verb, $argstr )
