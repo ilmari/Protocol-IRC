@@ -352,9 +352,6 @@ sub _set_isupport
          $self->{isupport}{chanmodes_list} = [ split( m/,/, $value ) ];
       }
       elsif( $name eq "CASEMAPPING" ) {
-         $self->{isupport}{casemap_1459} = ( lc $value ne "ascii" ); # RFC 1459 unless we're told not
-         $self->{isupport}{casemap_1459_strict} = ( lc $value eq "strict-rfc1459" );
-
          $self->{nick_folded} = $self->casefold_name( $self->{nick} );
       }
       elsif( $name eq "CHANTYPES" ) {
@@ -458,33 +455,6 @@ sub prefix_flag2mode
    my ( $flag ) = @_;
 
    return $self->{isupport}{prefix_map_f2m}{$flag};
-}
-
-=head2 $name_folded = $irc->casefold_name( $name )
-
-Returns the C<$name>, folded in case according to the server's C<CASEMAPPING>
-C<ISUPPORT>. Such a folded name will compare using C<eq> according to whether the
-server would consider it the same name.
-
-Useful for use in hash keys or similar.
-
-=cut
-
-sub casefold_name
-{
-   my $self = shift;
-   my ( $nick ) = @_;
-
-   return undef unless defined $nick;
-
-   # Squash the 'capital' [\] into lowercase {|}
-   $nick =~ tr/[\\]/{|}/ if $self->{isupport}{casemap_1459};
-
-   # Most RFC 1459 implementations also squash ^ to ~, even though the RFC
-   # didn't mention it
-   $nick =~ tr/^/~/ unless $self->{isupport}{casemap_1459_strict};
-
-   return lc $nick;
 }
 
 =head2 $classification = $irc->classify_name( $name )

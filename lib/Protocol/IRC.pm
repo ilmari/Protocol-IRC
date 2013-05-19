@@ -12,6 +12,8 @@ our $VERSION = '0.01';
 
 use Carp;
 
+use Protocol::IRC::Message;
+
 # This should be mixed in MI-style
 
 =head1 NAME
@@ -208,6 +210,35 @@ sub send_ctcpreply
    my ( $prefix, $target, $verb, $argstr ) = @_;
 
    $self->send_message( "NOTICE", undef, $target, "\001$verb $argstr\001" );
+}
+
+=head2 $name_folded = $irc->casefold_name( $name )
+
+Returns the C<$name>, folded in case according to the server's C<CASEMAPPING>
+C<ISUPPORT>. Such a folded name will compare using C<eq> according to whether the
+server would consider it the same name.
+
+Useful for use in hash keys or similar.
+
+=cut
+
+sub casefold_name
+{
+   my $self = shift;
+   my ( $nick ) = @_;
+
+   return undef unless defined $nick;
+
+   my $mapping = lc( $self->isupport( "CASEMAPPING" ) || "" );
+
+   # Squash the 'capital' [\] into lowercase {|}
+   $nick =~ tr/[\\]/{|}/ if $mapping ne "ascii";
+
+   # Most RFC 1459 implementations also squash ^ to ~, even though the RFC
+   # didn't mention it
+   $nick =~ tr/^/~/ unless $mapping eq "strict-rfc1459";
+
+   return lc $nick;
 }
 
 =head1 REQUIRED METHODS
