@@ -167,13 +167,11 @@ sub connect
    my $self = shift;
    my %args = @_;
 
-   $self->is_connected and croak "Cannot ->connect - not in unconnected state";
-
    my $on_error = delete $args{on_error};
 
    $args{service} ||= "6667";
 
-   $self->SUPER::connect(
+   return $self->{connect_f} ||= $self->SUPER::connect(
       %args,
 
       on_resolve_error => sub {
@@ -196,7 +194,7 @@ sub connect
             $on_error->( "Cannot connect" );
          }
       },
-   );
+   )->on_fail( sub { undef $self->{connect_f} } );
 }
 
 =head2 $irc->login( %args )
@@ -250,31 +248,22 @@ sub login
    my $on_login = delete $args{on_login};
    ref $on_login eq "CODE" or croak "Expected 'on_login' as a CODE reference";
 
-   if( $self->is_connected ) {
+   return $self->{login_f} ||= $self->connect( %args )->and_then( sub {
       $self->send_message( "PASS", undef, $pass ) if defined $pass;
 
       $self->send_message( "USER", undef, $user, "0", "*", $realname );
 
       $self->send_message( "NICK", undef, $nick );
 
-      $self->{on_login} = $on_login;
-   }
-   else {
-      $self->connect(
-         %args,
+      my $f = $self->loop->new_future;
 
-         on_connected => sub {
-            $self->login(
-               nick     => $nick,
-               user     => $user,
-               realname => $realname,
-               pass     => $pass,
+      $self->{on_login} = sub {
+         $f->done;
+         goto &$on_login;
+      };
 
-               on_login => $on_login,
-            );
-         },
-      );
-   }
+      return $f;
+   })->on_fail( sub { undef $self->{login_f} } );
 }
 
 =head2 $info = $irc->server_info( $key )
@@ -541,7 +530,6 @@ sub on_message_001
    my ( $message ) = @_;
 
    $self->{on_login}->( $self ) if defined $self->{on_login};
-   $self->{state}{loggedin} = 1;
    undef $self->{on_login};
 
    # Don't eat it

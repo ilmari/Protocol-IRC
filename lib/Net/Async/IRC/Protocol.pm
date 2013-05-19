@@ -71,7 +71,8 @@ sub new
 
          $on_closed->() if $on_closed;
 
-         $self->{state} = { connected => 0, loggedin => 0 };
+         undef $self->{connect_f};
+         undef $self->{login_f};
       },
    );
 }
@@ -108,7 +109,6 @@ sub _init
    );
    $self->add_child( $self->{pongtimer} );
 
-   $self->{state} = { connected => 0, loggedin => 0 };
    $self->{isupport} = {};
 
    # Some initial defaults for isupport-derived values
@@ -210,7 +210,7 @@ sub setup_transport
    my $self = shift;
    $self->SUPER::setup_transport( @_ );
 
-   $self->{state}{connected} = 1;
+   $self->{connect_f} = Future->new->done( $self->transport->read_handle );
    $self->{pingtimer}->start if $self->{pingtimer} and $self->get_loop;
 }
 
@@ -218,7 +218,8 @@ sub teardown_transport
 {
    my $self = shift;
 
-   $self->{state} = { connected => 0, loggedin => 0 };
+   undef $self->{connect_f};
+   undef $self->{login_f};
    $self->{pingtimer}->stop if $self->{pingtimer} and $self->get_loop;
 
    $self->SUPER::teardown_transport( @_ );
@@ -239,7 +240,8 @@ also the C<is_loggedin> method.
 sub is_connected
 {
    my $self = shift;
-   return $self->{state}{connected};
+   return 0 unless my $connect_f = $self->{connect_f};
+   return $connect_f->is_ready and !$connect_f->failure;
 }
 
 =head2 $loggedin = $irc->is_loggedin
@@ -252,7 +254,8 @@ and it is ready to use.
 sub is_loggedin
 {
    my $self = shift;
-   return $self->{state}{loggedin};
+   return 0 unless my $login_f = $self->{login_f};
+   return $login_f->is_ready and !$login_f->failure;
 }
 
 sub on_read
