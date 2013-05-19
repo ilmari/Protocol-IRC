@@ -516,17 +516,6 @@ sub is_nick_me
 
 =head1 MESSAGE HANDLING
 
-Every incoming message causes a sequence of message handling to occur. First,
-the message is parsed, and a hash of data about it is created; this is called
-the hints hash. The message and this hash are then passed down a sequence of
-potential handlers.
-
-Each handler indicates by return value, whether it considers the message to
-have been handled. Processing of the message is not interrupted the first time
-a handler declares to have handled a message. Instead, the hints hash is marked
-to say it has been handled. Later handlers can still inspect the message or its
-hints, using this information to decide if they wish to take further action.
-
 A message with a command of C<COMMAND> will try handlers in following places:
 
 =over 4
@@ -564,22 +553,11 @@ below.
 
 =cut
 
-sub _invoke
+sub invoke
 {
    my $self = shift;
    my $retref = $self->maybe_invoke_event( @_ ) or return undef;
    return $retref->[0];
-}
-
-sub incoming_message
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-
-   my $command = $message->command;
-
-   $self->_invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
-   $self->_invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
 }
 
 sub on_message_NOTICE
@@ -741,15 +719,15 @@ sub _on_message_text
 
       my $ctcptype = $is_notice ? "ctcpreply" : "ctcp";
 
-      $self->_invoke( "on_message_${ctcptype}_$verb", $message, \%hints ) and $hints{handled} = 1;
-      $self->_invoke( "on_message_${ctcptype}", $verb, $message, \%hints ) and $hints{handled} = 1;
-      $self->_invoke( "on_message", "$ctcptype $verb", $message, \%hints ) and $hints{handled} = 1;
+      $self->invoke( "on_message_${ctcptype}_$verb", $message, \%hints ) and $hints{handled} = 1;
+      $self->invoke( "on_message_${ctcptype}", $verb, $message, \%hints ) and $hints{handled} = 1;
+      $self->invoke( "on_message", "$ctcptype $verb", $message, \%hints ) and $hints{handled} = 1;
    }
    else {
       $hints{text} = $text;
 
-      $self->_invoke( "on_message_text", $message, \%hints ) and $hints{handled} = 1;
-      $self->_invoke( "on_message", "text", $message, \%hints ) and $hints{handled} = 1;
+      $self->invoke( "on_message_text", $message, \%hints ) and $hints{handled} = 1;
+      $self->invoke( "on_message", "text", $message, \%hints ) and $hints{handled} = 1;
    }
 
    return $hints{handled};

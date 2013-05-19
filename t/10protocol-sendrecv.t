@@ -10,6 +10,7 @@ my $CRLF = "\x0d\x0a"; # because \r\n isn't portable
 
 my $written = "";
 my @messages;
+my $foo_received;
 
 my $irc = TestIRC->new;
 
@@ -29,6 +30,10 @@ is( $msg->command, "001",             '$msg->command' );
 is( $msg->prefix,  "irc.example.com", '$msg->prefix' );
 is_deeply( [ $msg->args ], [ "YourNameHere", "Welcome to IRC YourNameHere!me\@your.host" ], '$msg->args' );
 
+$buffer = ":irc.example.com FOO$CRLF";
+$irc->on_read( $buffer );
+ok( $foo_received, '$foo_received after FOO message' );
+
 done_testing;
 
 package TestIRC;
@@ -38,7 +43,13 @@ sub new { return bless [], shift }
 
 sub write { $written .= $_[1] }
 
-sub incoming_message { push @messages, $_[1] }
+sub on_message
+{
+   Test::More::is( $_[1], $_[2]->command, '$command is $message->command' );
+   push @messages, $_[2];
+}
+
+sub on_message_FOO { $foo_received++ }
 
 sub isupport
 {

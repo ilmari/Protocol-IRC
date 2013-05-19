@@ -20,11 +20,42 @@ use Protocol::IRC::Message;
 
 C<Protocol::IRC> - IRC protocol handling
 
+=head1 MESSAGE HANDLING
+
+Every incoming message causes a sequence of message handling to occur. First,
+the message is parsed, and a hash of data about it is created; this is called
+the hints hash. The message and this hash are then passed down a sequence of
+potential handlers.
+
+Each handler indicates by return value, whether it considers the message to
+have been handled. Processing of the message is not interrupted the first time
+a handler declares to have handled a message. Instead, the hints hash is marked
+to say it has been handled. Later handlers can still inspect the message or its
+hints, using this information to decide if they wish to take further action.
+
+A message with a command of C<COMMAND> will try handlers in following places:
+
+=over 4
+
+=item 1.
+
+A method called C<on_message_COMMAND>
+
+ $irc->on_message_COMMAND( $message, \%hints )
+
+=item 2.
+
+A method called C<on_message>
+
+ $irc->on_message( 'COMMAND', $message, \%hints )
+
+=back
+
 =head2 Message Hints
 
-When messages arrive they are passed to the C<incoming_message> method, which
-the implementation must define. As well as the message, a hash of extra
-information derived from or relating to the message is also given.
+When messages arrive they are passed to the appropriate message handling
+method, which the implementation may define. As well as the message, a hash
+of extra information derived from or relating to the message is also given.
 
 The following keys will be present in any message hint hash:
 
@@ -142,7 +173,8 @@ sub on_read
          $hints->{"${k}_folded"} = $self->casefold_name( $hints->{$k} );
       }
 
-      $self->incoming_message( $message, $hints );
+      $self->invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
+      $self->invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
    }
 }
 
@@ -245,15 +277,6 @@ sub casefold_name
 
 =cut
 
-=head2 $irc->incoming_message( $message, $hints )
-
-Informs that the given L<Protocol::IRC::Message> has been received, containing
-the information in the given hints hash.
-
-=cut
-
-sub incoming_message { croak "Attempted to invoke abstract ->incoming_message on " . ref $_[0] }
-
 =head2 $irc->write( $string )
 
 Requests the byte string to be sent to the peer
@@ -272,6 +295,28 @@ encoded or decoded using this object.
 =cut
 
 sub encoder { undef }
+
+=head2 $result = $irc->invoke( $name, @args )
+
+Optional. If provided, invokes the message handling routine called C<$name>
+with the given arguments. A default implementation is provided which simply
+attempts to invoke a method of the given name, or return false if no method
+of that name exists.
+
+If an implementation does override this method, care should be taken to ensure
+that methods are tested for and invoked if present, in addition to any other
+work the method wishes to perform, as this is the basis by which derived
+message handling works.
+
+=cut
+
+sub invoke
+{
+   my $self = shift;
+   my ( $name, @args ) = @_;
+   return unless $self->can( $name );
+   return $self->$name( @args );
+}
 
 =head1 AUTHOR
 

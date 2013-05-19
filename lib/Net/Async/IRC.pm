@@ -501,8 +501,8 @@ sub pull_list_and_invoke
       $list => $values,
    );
 
-   $self->_invoke( "on_message_$list", $message, \%hints ) and $hints{handled} = 1;
-   $self->_invoke( "on_message", $list, $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message_$list", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message", $list, $message, \%hints ) and $hints{handled} = 1;
 
    return $hints{handled};
 }
@@ -656,8 +656,8 @@ sub on_message_366 # RPL_ENDOFNAMES
       names => \%names,
    );
 
-   $self->_invoke( "on_message_names", $message, \%hints ) and $hints{handled} = 1;
-   $self->_invoke( "on_message", "names", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message_names", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message", "names", $message, \%hints ) and $hints{handled} = 1;
 
    return $hints{handled};
 }
