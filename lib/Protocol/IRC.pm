@@ -18,6 +18,64 @@ use Carp;
 
 C<Protocol::IRC> - IRC protocol handling
 
+=head2 Message Hints
+
+When messages arrive they are passed to the C<incoming_message> method, which
+the implementation must define. As well as the message, a hash of extra
+information derived from or relating to the message is also given.
+
+The following keys will be present in any message hint hash:
+
+=over 8
+
+=item handled => BOOL
+
+Initially false. Will be set to true the first time a handler returns a true
+value.
+
+=item prefix_nick => STRING
+
+=item prefix_user => STRING
+
+=item prefix_host => STRING
+
+Values split from the message prefix; see the C<Protocol::IRC::Message>
+C<prefix_split> method.
+
+=item prefix_name => STRING
+
+Usually the prefix nick, or the hostname in case the nick isn't defined
+(usually on server messages).
+
+=item prefix_is_me => BOOL
+
+True if the nick mentioned in the prefix refers to this connection.
+
+=back
+
+Added to this set, will be all the values returned by the message's
+C<named_args> method. Some of these values may cause yet more values to be
+generated.
+
+If the message type defines a C<target_name>:
+
+=over 8
+
+=item * target_type => STRING
+
+Either C<channel> or C<user>, as returned by C<classify_name>.
+
+=item * target_is_me => BOOL
+
+True if the target name is a user and refers to this connection.
+
+=back
+
+Finally, any key whose name ends in C<_nick> or C<_name> will have a
+corresponding key added with C<_folded> suffixed on its name, containing the
+value casefolded using C<casefold_name>. This is for the convenience of string
+comparisons, hash keys, etc..
+
 =cut
 
 =head1 METHODS
@@ -31,6 +89,9 @@ peer. This method will modify the C<$buffer> directly, and remove from it the
 prefix of bytes it has consumed. Any bytes remaining should be stored by the
 caller for next time.
 
+Any messages found in the buffer will be passed, in sequence, to the
+C<incoming_message> method.
+
 =cut
 
 sub on_read
@@ -42,7 +103,44 @@ sub on_read
       my $line = $1;
       my $message = Protocol::IRC::Message->new_from_line( $line );
 
-      $self->incoming_message( $message );
+      my $command = $message->command;
+
+      my ( $prefix_nick, $prefix_user, $prefix_host ) = $message->prefix_split;
+
+      my $hints = {
+         handled => 0,
+
+         prefix_nick  => $prefix_nick,
+         prefix_user  => $prefix_user,
+         prefix_host  => $prefix_host,
+         # Most of the time this will be "nick", except for special messages from the server
+         prefix_name  => defined $prefix_nick ? $prefix_nick : $prefix_host,
+         prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
+      };
+
+      if( my $named_args = $message->named_args ) {
+         $hints->{$_} = $named_args->{$_} for keys %$named_args;
+      }
+
+      if( defined $hints->{text} and $self->{encoder} ) {
+         $hints->{text} = $self->{encoder}->decode( $hints->{text} );
+      }
+
+      if( defined( my $target_name = $hints->{target_name} ) ) {
+         $hints->{target_is_me} = $self->is_nick_me( $target_name );
+
+         my $target_type = $self->classify_name( $target_name );
+         $hints->{target_type} = $target_type;
+      }
+
+      my $prepare_method = "prepare_hints_$command";
+      $self->$prepare_method( $message, $hints ) if $self->can( $prepare_method );
+
+      foreach my $k ( grep { m/_nick$/ or m/_name$/ } keys %$hints ) {
+         $hints->{"${k}_folded"} = $self->casefold_name( $hints->{$k} );
+      }
+
+      $self->incoming_message( $message, $hints );
    }
 }
 
@@ -116,7 +214,10 @@ sub send_ctcpreply
 
 =cut
 
-=head2 $irc->incoming_message( $message )
+=head2 $irc->incoming_message( $message, $hints )
+
+Informs that the given L<Protocol::IRC::Message> has been received, containing
+the information in the given hints hash.
 
 =cut
 
