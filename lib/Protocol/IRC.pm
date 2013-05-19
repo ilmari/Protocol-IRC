@@ -83,6 +83,35 @@ sub send_message
    $self->write( $message->stream_to_line . "\x0d\x0a" );
 }
 
+=head2 $irc->send_ctcp( $prefix, $target, $verb, $argstr )
+
+Shortcut to sending a CTCP message. Sends a PRIVMSG to the given target,
+containing the given verb and argument string.
+
+=cut
+
+sub send_ctcp
+{
+   my $self = shift;
+   my ( $prefix, $target, $verb, $argstr ) = @_;
+
+   $self->send_message( "PRIVMSG", undef, $target, "\001$verb $argstr\001" );
+}
+
+=head2 $irc->send_ctcprely( $prefix, $target, $verb, $argstr )
+
+Shortcut to sending a CTCP reply. As C<send_ctcp> but using a NOTICE instead.
+
+=cut
+
+sub send_ctcpreply
+{
+   my $self = shift;
+   my ( $prefix, $target, $verb, $argstr ) = @_;
+
+   $self->send_message( "NOTICE", undef, $target, "\001$verb $argstr\001" );
+}
+
 =head1 REQUIRED METHODS
 
 =cut
