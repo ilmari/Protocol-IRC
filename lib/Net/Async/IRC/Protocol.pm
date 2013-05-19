@@ -259,25 +259,7 @@ sub on_read_line
 
    $pingtimer->is_running ? $pingtimer->reset : $pingtimer->start;
 
-   # Handle these locally as a special case
-   my $command = $message->command;
-
-   if( $command eq "PING" ) {
-      $self->send_message( "PONG", undef, $message->named_args->{text} );
-   }
-   elsif( $command eq "PONG" ) {
-      return 1 unless $self->{pongtimer}->is_running;
-
-      my $lag = time - $self->{ping_send_time};
-
-      $self->{current_lag} = $lag;
-      $self->{on_pong_reply}->( $self, $lag ) if $self->{on_pong_reply};
-
-      $self->{pongtimer}->stop;
-   }
-   else {
-      $self->incoming_message( $message );
-   }
+   $self->incoming_message( $message );
 
    return 1;
 }
@@ -796,6 +778,33 @@ sub on_message_NOTICE
    my $self = shift;
    my ( $message, $hints ) = @_;
    return $self->_on_message_text( $message, $hints, 1 );
+}
+
+sub on_message_PING
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   $self->send_message( "PONG", undef, $message->named_args->{text} );
+
+   return 1;
+}
+
+sub on_message_PONG
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   return 1 unless $self->{pongtimer}->is_running;
+
+   my $lag = time - $self->{ping_send_time};
+
+   $self->{current_lag} = $lag;
+   $self->{on_pong_reply}->( $self, $lag ) if $self->{on_pong_reply};
+
+   $self->{pongtimer}->stop;
+
+   return 1;
 }
 
 sub on_message_PRIVMSG
