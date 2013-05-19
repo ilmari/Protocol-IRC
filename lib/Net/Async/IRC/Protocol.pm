@@ -306,15 +306,6 @@ A 4-element array containing the split portions of C<CHANMODES>;
 
  [ $listmodes, $argmodes, $argsetmodes, $boolmodes ]
 
-=item casemap_1459 => BOOLEAN
-
-True if the C<CASEMAPPING> parameter is not C<ascii>; i.e. it is some form of
-RFC 1459 mapping
-
-=item casemap_1459_strict => BOOLEAN
-
-True if the C<CASEMAPPING> parameter is exactly C<strict-rfc1459>
-
 =back
 
 =cut
