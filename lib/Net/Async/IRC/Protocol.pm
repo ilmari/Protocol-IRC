@@ -358,20 +358,6 @@ sub nick_folded
    return $self->{nick_folded};
 }
 
-=head2 $me = $irc->is_nick_me( $nick )
-
-Returns true if the given nick refers to that in use by the connection.
-
-=cut
-
-sub is_nick_me
-{
-   my $self = shift;
-   my ( $nick ) = @_;
-
-   return $self->casefold_name( $nick ) eq $self->{nick_folded};
-}
-
 =head1 MESSAGE HANDLING
 
 A message with a command of C<COMMAND> will try handlers in following places:

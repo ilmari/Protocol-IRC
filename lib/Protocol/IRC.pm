@@ -379,6 +379,20 @@ sub classify_name
    return "user"; # TODO: Perhaps we can be a bit stricter - only check for valid nick chars?
 }
 
+=head2 $me = $irc->is_nick_me( $nick )
+
+Returns true if the given nick refers to that in use by the connection.
+
+=cut
+
+sub is_nick_me
+{
+   my $self = shift;
+   my ( $nick ) = @_;
+
+   return $self->casefold_name( $nick ) eq $self->nick_folded;
+}
+
 =head1 INTERNAL MESSAGE HANDLING
 
 The following messages are handled internally by C<Protocol::IRC>.
@@ -492,6 +506,21 @@ character in C<CHANTYPES>.
 =cut
 
 sub isupport { croak "Attempted to invoke abstract ->isupport on " . ref $_[0] }
+
+=head2 $nick = $irc->nick
+
+Should return the current nick in use by the connection.
+
+=head2 $nick_folded = $irc->nick_folded
+
+Optional. If supplied, should return the current nick as case-folded by the
+C<casefold_name> method. If not provided, this will be performed by 
+case-folding the result from C<nick>.
+
+=cut
+
+sub nick        { croak "Attempted to invoke abstract ->nick on " . ref $_[0] }
+sub nick_folded { $_[0]->casefold_name( $_[0]->nick ) }
 
 =head1 AUTHOR
 
