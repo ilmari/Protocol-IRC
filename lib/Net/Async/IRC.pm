@@ -10,7 +10,7 @@ use warnings;
 
 our $VERSION = '0.06';
 
-use base qw( Net::Async::IRC::Protocol );
+use base qw( Net::Async::IRC::Protocol Protocol::IRC::Client );
 
 use Carp;
 
