@@ -567,16 +567,6 @@ sub on_message_NOTICE
    return $self->_on_message_text( $message, $hints, 1 );
 }
 
-sub on_message_PING
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-
-   $self->send_message( "PONG", undef, $message->named_args->{text} );
-
-   return 1;
-}
-
 sub on_message_PONG
 {
    my $self = shift;

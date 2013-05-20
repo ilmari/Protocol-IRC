@@ -273,6 +273,28 @@ sub casefold_name
    return lc $nick;
 }
 
+=head1 INTERNAL MESSAGE HANDLING
+
+The following messages are handled internally by C<Protocol::IRC>.
+
+=cut
+
+=head2 PING
+
+C<PING> messages are automatically replied to with C<PONG>.
+
+=cut
+
+sub on_message_PING
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   $self->send_message( "PONG", undef, $message->named_args->{text} );
+
+   return 1;
+}
+
 =head1 REQUIRED METHODS
 
 =cut
