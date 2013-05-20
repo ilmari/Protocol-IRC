@@ -45,6 +45,10 @@ is_deeply( [ $msg->args ], [qw( arg1 arg2 )], '$msg->args' );
 
 is( $msg->stream_to_line, ":prefix COMMAND arg1 arg2", '$msg->stream_to_line' );
 
+$msg = Protocol::IRC::Message->new( "001", undef, ":Welcome to IRC User!ident\@host" );
+is( $msg->command, "001", '$msg->command for 001' );
+is( $msg->command_name, "RPL_WELCOME", '$msg->command_name for 001' );
+
 $msg = Protocol::IRC::Message->new_with_tags( "PRIVMSG", { intent => "ACTION" }, undef, "#example", "throws a rock" );
 is_deeply( $msg->tags, { intent => "ACTION" }, '$msg->tags' );
 

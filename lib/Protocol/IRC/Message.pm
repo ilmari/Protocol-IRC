@@ -183,7 +183,7 @@ sub STRING
 
 =head2 $command = $message->command
 
-Returns the command name stored in the message object.
+Returns the command name or numeric stored in the message object.
 
 =cut
 
@@ -191,6 +191,21 @@ sub command
 {
    my $self = shift;
    return $self->{command};
+}
+
+=head2 $name = $message->command_name
+
+For named commands, returns the command name directly. For server numeric
+replies, returns the name of the numeric.
+
+=cut
+
+my %NUMERIC_NAMES;
+
+sub command_name
+{
+   my $self = shift;
+   return $NUMERIC_NAMES{ $self->command } || $self->command;
 }
 
 =head2 $tags = $message->tags
@@ -355,7 +370,7 @@ while( <DATA> ) {
       }
    } split m/,/, $args;
 
-   # TODO: Use the name somehow
+   $NUMERIC_NAMES{$num} = $name;
    $ARG_NAMES{$num} = \%args;
 }
 close DATA;
