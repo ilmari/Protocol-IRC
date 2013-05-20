@@ -129,6 +129,126 @@ sub on_message_RPL_MYINFO
    return 0;
 }
 
+=head1 MESSAGE HANDLING
+
+=cut
+
+=head2 MODE (on channels) and 324 (RPL_CHANNELMODEIS)
+
+These message involve channel modes. The raw list of channel modes is parsed
+into an array containing one entry per affected piece of data. Each entry will
+contain at least a C<type> key, indicating what sort of mode or mode change
+it is:
+
+=over 8
+
+=item list
+
+The mode relates to a list; bans, invites, etc..
+
+=item value
+
+The mode sets a value about the channel
+
+=item bool
+
+The mode is a simple boolean flag about the channel
+
+=item occupant
+
+The mode relates to a user in the channel
+
+=back
+
+Every mode type then provides a C<mode> key, containing the mode character
+itself, and a C<sense> key which is an empty string, C<+>, or C<->.
+
+For C<list> and C<value> types, the C<value> key gives the actual list entry
+or value being set.
+
+For C<occupant> types, a C<flag> key gives the mode converted into an occupant
+flag (by the C<prefix_mode2flag> method), C<nick> and C<nick_folded> store the
+user name affected.
+
+C<boolean> types do not create any extra keys.
+
+=cut
+
+sub prepare_hints_channelmode
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   my ( $listmodes, $argmodes, $argsetmodes, $boolmodes ) = @{ $self->isupport( 'chanmodes_list' ) };
+
+   my $modechars = $hints->{modechars};
+   my @modeargs = @{ $hints->{modeargs} };
+
+   my @modes; # [] -> { type => $, sense => $, mode => $, arg => $ }
+
+   my $sense = 0;
+   foreach my $modechar ( split( m//, $modechars ) ) {
+      $sense =  1, next if $modechar eq "+";
+      $sense = -1, next if $modechar eq "-";
+
+      my $hasarg;
+
+      my $mode = {
+         mode  => $modechar,
+         sense => $sense,
+      };
+
+      if( index( $listmodes, $modechar ) > -1 ) {
+         $mode->{type} = 'list';
+         $mode->{value} = shift @modeargs if ( $sense != 0 );
+      }
+      elsif( index( $argmodes, $modechar ) > -1 ) {
+         $mode->{type} = 'value';
+         $mode->{value} = shift @modeargs if ( $sense != 0 );
+      }
+      elsif( index( $argsetmodes, $modechar ) > -1 ) {
+         $mode->{type} = 'value';
+         $mode->{value} = shift @modeargs if ( $sense > 0 );
+      }
+      elsif( index( $boolmodes, $modechar ) > -1 ) {
+         $mode->{type} = 'bool';
+      }
+      elsif( my $flag = $self->prefix_mode2flag( $modechar ) ) {
+         $mode->{type} = 'occupant';
+         $mode->{flag} = $flag;
+         $mode->{nick} = shift @modeargs if ( $sense != 0 );
+         $mode->{nick_folded} = $self->casefold_name( $mode->{nick} );
+      }
+      else {
+         # TODO: Err... not recognised ... what do I do?
+      }
+
+      # TODO: Consider a per-mode event here...
+
+      push @modes, $mode;
+   }
+
+   $hints->{modes} = \@modes;
+}
+
+sub prepare_hints_MODE
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   if( $hints->{target_type} eq "channel" ) {
+      $self->prepare_hints_channelmode( $message, $hints );
+   }
+}
+
+sub prepare_hints_RPL_CHANNELMODEIS
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   $self->prepare_hints_channelmode( $message, $hints );
+}
+
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
