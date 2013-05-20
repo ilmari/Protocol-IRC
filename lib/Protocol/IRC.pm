@@ -20,6 +20,15 @@ use Protocol::IRC::Message;
 
 C<Protocol::IRC> - IRC protocol handling
 
+=head1 DESCRIPTION
+
+This mix-in class provides a base layer of IRC message handling logic. It
+allows reading of IRC messages from a string buffer and dispatching them to
+handler methods on its instance.
+
+L<Protocol::IRC::Client> provides an extension to this logic that may be more
+convenient for IRC client implementations.
+
 =head1 MESSAGE HANDLING
 
 Every incoming message causes a sequence of message handling to occur. First,

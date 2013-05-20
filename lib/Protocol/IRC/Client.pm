@@ -18,6 +18,20 @@ use Carp;
 
 C<Protocol::IRC::Client> - IRC protocol handling for a client
 
+=head1 DESCRIPTION
+
+This mix-in class provides a layer of IRC message handling logic suitable for
+an IRC client. It builds upon L<Protocol::IRC> to provide extra message
+processing useful to IRC clients, such as handling inbound server numerics.
+
+It provides some of the methods required by C<Protocol::IRC>:
+
+=over 4
+
+=item * isupport
+
+=back
+
 =cut
 
 =head1 METHODS
@@ -129,7 +143,9 @@ sub on_message_RPL_MYINFO
    return 0;
 }
 
-=head1 MESSAGE HANDLING
+=head1 INTERNAL MESSAGE HANDLING
+
+The following messages are handled internally by C<Protocol::IRC::Client>.
 
 =cut
 
