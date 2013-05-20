@@ -9,6 +9,7 @@ my $build = Module::Build->new(
       'IO::Async::Loop' => '0.54', # ->connect Future
       'IO::Async::Protocol::LineStream' => '0.34',
       'Time::HiRes' => 0,
+      'perl' => '5.010', # //, mro c3
    },
    build_requires => {
       'IO::Async::OS' => 0,

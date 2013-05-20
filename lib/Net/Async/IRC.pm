@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2008-2011 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2008-2013 -- leonerd@leonerd.org.uk
 
 package Net::Async::IRC;
 
@@ -10,6 +10,8 @@ use warnings;
 
 our $VERSION = '0.06';
 
+# We need to use C3 MRO to make the ->isupport etc.. methods work properly
+use mro 'c3';
 use base qw( Net::Async::IRC::Protocol Protocol::IRC::Client );
 
 use Carp;
@@ -524,16 +526,6 @@ sub on_message_004
 
    @{$self->{server_info}}{qw( host version usermodes channelmodes )} =
       @{$hints}{qw( serverhost serverversion usermodes channelmodes )};
-
-   return 0;
-}
-
-sub on_message_005
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-
-   $self->_set_isupport( { map { m/^([A-Z]+)(?:=(.*))?$/ } @{ $hints->{isupport} } } );
 
    return 0;
 }

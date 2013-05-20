@@ -108,13 +108,6 @@ sub _init
       },
    );
    $self->add_child( $self->{pongtimer} );
-
-   $self->{isupport} = {};
-
-   # Some initial defaults for isupport-derived values
-   $self->{isupport}{channame_re} = qr/^[#&]/;
-   $self->{isupport}{prefixflag_re} = qr/^[\@+]/;
-   $self->{isupport}{chanmodes_list} = [qw( b k l imnpst )]; # TODO: ov
 }
 
 # for Protocol::IRC
@@ -269,61 +262,6 @@ sub on_read
 
    $self->Protocol::IRC::on_read( $$buffref );
    return 0;
-}
-
-sub _set_isupport
-{
-   my $self = shift;
-   my ( $isupport ) = @_;
-
-   foreach my $name ( keys %$isupport ) {
-      my $value = $isupport->{$name};
-
-      $value = 1 if !defined $value;
-
-      $self->{isupport}{$name} = $value;
-
-      if( $name eq "PREFIX" ) {
-         my $prefix = $value;
-
-         my ( $prefix_modes, $prefix_flags ) = $prefix =~ m/^\(([a-z]+)\)(.+)$/i
-            or warn( "Unable to parse PREFIX=$value" ), next;
-
-         $self->{isupport}{prefix_modes} = $prefix_modes;
-         $self->{isupport}{prefix_flags} = $prefix_flags;
-
-         $self->{isupport}{prefixflag_re} = qr/[$prefix_flags]/;
-
-         my %prefix_map;
-         $prefix_map{substr $prefix_modes, $_, 1} = substr $prefix_flags, $_, 1 for ( 0 .. length($prefix_modes) - 1 );
-
-         $self->{isupport}{prefix_map_m2f} = \%prefix_map;
-         $self->{isupport}{prefix_map_f2m} = { reverse %prefix_map };
-      }
-      elsif( $name eq "CHANMODES" ) {
-         $self->{isupport}{chanmodes_list} = [ split( m/,/, $value ) ];
-      }
-      elsif( $name eq "CASEMAPPING" ) {
-         $self->{nick_folded} = $self->casefold_name( $self->{nick} );
-      }
-      elsif( $name eq "CHANTYPES" ) {
-         $self->{isupport}{channame_re} = qr/^[$value]/;
-      }
-   }
-}
-
-=head2 $value = $irc->isupport( $key )
-
-Returns an item of information from the server's C<005 ISUPPORT> lines.
-Traditionally IRC servers use all-capital names for keys.
-
-=cut
-
-sub isupport
-{
-   my $self = shift;
-   my ( $flag ) = @_;
-   return $self->{isupport}{$flag};
 }
 
 =head2 $nick = $irc->nick
