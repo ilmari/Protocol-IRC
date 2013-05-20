@@ -507,7 +507,7 @@ sub on_message_NICK
    return 0;
 }
 
-sub on_message_001
+sub on_message_RPL_WELCOME
 {
    my $self = shift;
    my ( $message ) = @_;
@@ -519,7 +519,7 @@ sub on_message_001
    return 0;
 }
 
-sub on_message_004
+sub on_message_RPL_MYINFO
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
@@ -530,7 +530,7 @@ sub on_message_004
    return 0;
 }
 
-=head2 352 (RPL_WHOREPLY) and 315 (RPL_ENDOFWHO)
+=head2 RPL_WHOREPLY and RPL_ENDOFWHO
 
 These messages will be collected up, per channel, and formed into a single
 synthesized event called C<who>.
@@ -557,14 +557,14 @@ containing:
 
 =cut
 
-sub on_message_315 # RPL_ENDOFWHO
+sub on_message_RPL_ENDOFWHO
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
    $self->pull_list_and_invoke( "who", $message, $hints );
 }
 
-sub on_message_352 # RPL_WHOREPLY
+sub on_message_RPL_WHOREPLY
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
@@ -574,7 +574,7 @@ sub on_message_352 # RPL_WHOREPLY
    return 1;
 }
 
-=head2 353 (RPL_NAMES) and 366 (RPL_ENDOFNAMES)
+=head2 RPL_NAMEREPLY and RPL_ENDOFNAMES
 
 These messages will be collected up, per channel, and formed into a single
 synthesized event called C<names>.
@@ -593,7 +593,7 @@ containing:
 
 =cut
 
-sub on_message_353 # RPL_NAMES
+sub on_message_RPL_NAMEREPLY
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
@@ -603,7 +603,7 @@ sub on_message_353 # RPL_NAMES
    return 1;
 }
 
-sub on_message_366 # RPL_ENDOFNAMES
+sub on_message_RPL_ENDOFNAMES
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
@@ -635,7 +635,7 @@ sub on_message_366 # RPL_ENDOFNAMES
    return $hints{handled};
 }
 
-=head2 367 (RPL_BANLIST) and 368 (RPL_ENDOFBANS)
+=head2 RPL_BANLIST and RPL_ENDOFBANS
 
 These messages will be collected up, per channel, and formed into a single
 synthesized event called C<bans>.
@@ -663,7 +663,7 @@ UNIX timestamp the ban was created
 
 =cut
 
-sub on_message_367 # RPL_BANLIST
+sub on_message_RPL_BANLIST
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
@@ -673,14 +673,14 @@ sub on_message_367 # RPL_BANLIST
    return 1;
 }
 
-sub on_message_368 # RPL_ENDOFBANS
+sub on_message_RPL_ENDOFBANS
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
    $self->pull_list_and_invoke( "bans", $message, $hints );
 }
 
-=head2 372 (RPL_MOTD), 375 (RPL_MOTDSTART) and 376 (RPL_ENDOFMOTD)
+=head2 RPL_MOTD, RPL_MOTDSTART and RPL_ENDOFMOTD
 
 These messages will be collected up into a synthesized event called C<motd>.
 
@@ -689,7 +689,7 @@ containing the lines of the MOTD.
 
 =cut
 
-sub on_message_372 # RPL_MOTD
+sub on_message_RPL_MOTD
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
@@ -697,7 +697,7 @@ sub on_message_372 # RPL_MOTD
    return 1;
 }
 
-sub on_message_375 # RPL_MOTDSTART
+sub on_message_RPL_MOTDSTART
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
@@ -705,7 +705,7 @@ sub on_message_375 # RPL_MOTDSTART
    return 1;
 }
 
-sub on_message_376 # RPL_ENDOFMOTD
+sub on_message_RPL_ENDOFMOTD
 {
    my $self = shift;
    my ( $message, $hints ) = @_;

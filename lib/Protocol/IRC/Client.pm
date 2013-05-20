@@ -45,7 +45,7 @@ sub isupport
    return $self->{Protocol_IRC_isupport}->{$field} // $ISUPPORT{$field};
 }
 
-sub on_message_005
+sub on_message_RPL_ISUPPORT
 {
    my $self = shift;
    my ( $message, $hints ) = @_;
