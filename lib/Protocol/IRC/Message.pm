@@ -358,6 +358,7 @@ while( <DATA> ) {
    # TODO: Use the name somehow
    $ARG_NAMES{$num} = \%args;
 }
+close DATA;
 
 # TODO: 472 ERR_UNKNOWNMODE: <char> :is unknown mode char to me for <channel>
 # How to parse this one??
