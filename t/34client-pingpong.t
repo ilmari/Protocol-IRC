@@ -12,7 +12,7 @@ use IO::Async::OS;
 use IO::Async::Loop;
 use IO::Async::Stream;
 
-use Net::Async::IRC::Protocol;
+use Net::Async::IRC;
 
 my $CRLF = "\x0d\x0a"; # because \r\n isn't portable
 
@@ -24,7 +24,7 @@ my ( $S1, $S2 ) = IO::Async::OS->socketpair() or die "Cannot create socket pair 
 my $lag;
 my $pingout;
 
-my $irc = Net::Async::IRC::Protocol->new(
+my $irc = Net::Async::IRC->new(
    transport => IO::Async::Stream->new( handle => $S1 ),
    on_message => sub { "IGNORE" },
 
