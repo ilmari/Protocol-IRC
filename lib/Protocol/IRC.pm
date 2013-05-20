@@ -51,6 +51,21 @@ A method called C<on_message>
 
 =back
 
+Because of the wide variety of messages in IRC involving various types of data
+the message handling specific cases for certain types of message, including
+adding extra hints hash items, or invoking extra message handler stages. These
+details are noted here.
+
+Many of these messages create new events; called synthesized messages. These
+are messages created by the C<Protocol::IRC> object itself, to better
+represent some of the details derived from the primary ones from the server.
+These events all take lower-case command names, rather than capitals, and will
+have a C<synthesized> key in the hints hash, set to a true value. These are
+dispatched and handled identically to regular primary events, detailed above.
+
+If any handler of the synthesized message returns true, then this marks the
+primary message handled as well.
+
 =head2 Message Hints
 
 When messages arrive they are passed to the appropriate message handling
@@ -413,6 +428,134 @@ sub on_message_PING
    $self->send_message( "PONG", undef, $message->named_args->{text} );
 
    return 1;
+}
+
+=head2 NOTICE and PRIVMSG
+
+Because C<NOTICE> and C<PRIVMSG> are so similar, they are handled together by
+synthesized events called C<text>, C<ctcp> and C<ctcpreply>. Depending on the
+contents of the text, and whether it was supplied in a C<PRIVMSG> or a
+C<NOTICE>, one of these three events will be created. 
+
+In all cases, the hints hash will contain a C<is_notice> key being true or
+false, depending on whether the original messages was a C<NOTICE> or a
+C<PRIVMSG>, a C<target_name> key containing the message target name, a
+case-folded version of the name in a C<target_name_folded> key, and a
+classification of the target type in a C<target_type> key.
+
+For the C<user> target type, it will contain a boolean in C<target_is_me> to
+indicate if the target of the message is the user represented by this
+connection.
+
+For the C<channel> target type, it will contain a C<restriction> key
+containing the channel message restriction, if present.
+
+For normal C<text> messages, it will contain a key C<text> containing the
+actual message text.
+
+For either CTCP message type, it will contain keys C<ctcp_verb> and
+C<ctcp_args> with the parsed message. The C<ctcp_verb> will contain the first
+space-separated token, and C<ctcp_args> will be a string containing the rest
+of the line, otherwise unmodified. This type of message is also subject to a
+special stage of handler dispatch, involving the CTCP verb string. For
+messages with C<VERB> as the verb, the following are tried. C<CTCP> may stand
+for either C<ctcp> or C<ctcpreply>.
+
+=over 4
+
+=item 1.
+
+A method called C<on_message_CTCP_VERB>
+
+ $irc->on_message_CTCP_VERB( $message, \%hints )
+
+=item 2.
+
+A method called C<on_message_CTCP>
+
+ $irc->on_message_CTCP( 'VERB', $message, \%hintss )
+
+=item 3.
+
+A method called C<on_message>
+
+ $irc->on_message( 'CTCP VERB', $message, \%hints )
+
+=back
+
+=cut
+
+sub on_message_NOTICE
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   return $self->_on_message_text( $message, $hints, 1 );
+}
+
+sub on_message_PRIVMSG
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   return $self->_on_message_text( $message, $hints, 0 );
+}
+
+sub _on_message_text
+{
+   my $self = shift;
+   my ( $message, $hints, $is_notice ) = @_;
+
+   my %hints = (
+      %$hints,
+      synthesized => 1,
+      is_notice => $is_notice,
+   );
+
+   # TODO: In client->server messages this might be a comma-separated list
+   my $target = delete $hints{targets};
+
+   my $prefixflag_re = $self->isupport( 'prefixflag_re' );
+
+   my $restriction = "";
+   while( $target =~ m/^$prefixflag_re/ ) {
+      $restriction .= substr( $target, 0, 1, "" );
+   }
+
+   $hints{target_name} = $target;
+   $hints{target_name_folded} = $self->casefold_name( $target );
+
+   my $type = $hints{target_type} = $self->classify_name( $target );
+
+   if( $type eq "channel" ) {
+      $hints{restriction} = $restriction;
+      $hints{target_is_me} = '';
+   }
+   elsif( $type eq "user" ) {
+      # TODO: user messages probably can't have restrictions. What to do
+      # if we got one?
+      $hints{target_is_me} = $self->is_nick_me( $target );
+   }
+
+   my $text = $hints->{text};
+
+   if( $text =~ m/^\x01(.*)\x01$/ ) {
+      ( my $verb, $text ) = split( m/ /, $1, 2 );
+      $hints{ctcp_verb} = $verb;
+      $hints{ctcp_args} = $text;
+
+      my $ctcptype = $is_notice ? "ctcpreply" : "ctcp";
+
+      $self->invoke( "on_message_${ctcptype}_$verb", $message, \%hints ) and $hints{handled} = 1;
+      $self->invoke( "on_message_${ctcptype}", $verb, $message, \%hints ) and $hints{handled} = 1;
+      $self->invoke( "on_message", "$ctcptype $verb", $message, \%hints ) and $hints{handled} = 1;
+   }
+   else {
+      $hints{text} = $text;
+
+      $self->invoke( "on_message_text", $message, \%hints ) and $hints{handled} = 1;
+      $self->invoke( "on_message", "text", $message, \%hints ) and $hints{handled} = 1;
+   }
+
+   return $hints{handled};
 }
 
 =head1 REQUIRED METHODS

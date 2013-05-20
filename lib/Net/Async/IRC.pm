@@ -314,25 +314,6 @@ sub change_nick
    }
 }
 
-=head1 PER-MESSAGE SPECIFICS
-
-Because of the wide variety of messages in IRC involving various types of data
-the message handling specific cases for certain types of message, including
-adding extra hints hash items, or invoking extra message handler stages. These
-details are noted here.
-
-Many of these messages create new events; called synthesized messages. These
-are messages created by the C<Net::Async::IRC> object itself, to better
-represent some of the details derived from the primary ones from the server.
-These events all take lower-case command names, rather than capitals, and will
-have a C<synthesized> key in the hints hash, set to a true value. These are
-dispatched and handled identically to regular primary events, detailed above.
-
-If any handler of the synthesized message returns true, then this marks the
-primary message handled as well.
-
-=cut
-
 #########################
 # Prepare hints methods #
 #########################

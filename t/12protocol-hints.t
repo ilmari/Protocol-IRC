@@ -162,6 +162,12 @@ BEGIN {
    %isupport = (
       CHANTYPES   => "#&",
          channame_re => qr/^[#&]/,
+      PREFIX      => "(ohv)@%+",
+         prefix_modes => 'ohv',
+         prefix_flags => '@%+',
+         prefixflag_re => qr/^[@%+]/,
+         prefix_map_m2f => { 'o' => '@', 'h' => '%', 'v' => '+' },
+         prefix_map_f2m => { '@' => 'o', '%' => 'h', '+' => 'v' },
    );
 }
 sub isupport { return $isupport{$_[1]} }
