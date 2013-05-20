@@ -25,7 +25,7 @@ ok( defined $m, '$m defined after server reply' );
 
 my ( $command, $msg, $hints ) = @$m;
 
-is( $command, "001", '$command' );
+is( $command, "RPL_WELCOME", '$command' );
 
 isa_ok( $msg, "Protocol::IRC::Message", '$msg isa Protocol::IRC::Message' );
 
@@ -180,6 +180,9 @@ sub on_message
    my ( $command, $message, $hints ) = @_;
    # Only care about real events, not synthesized ones
    return 0 if $hints->{synthesized};
+   # Ignore numerics
+   return 0 if $command =~ m/^\d\d\d$/;
+
    push @messages, [ $command, $message, $hints ];
    return $command ne "NOTICE";
 }

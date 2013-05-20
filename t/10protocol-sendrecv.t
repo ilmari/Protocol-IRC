@@ -45,8 +45,10 @@ sub write { $written .= $_[1] }
 
 sub on_message
 {
-   Test::More::is( $_[1], $_[2]->command, '$command is $message->command' );
+   return if $_[3]->{handled};
+   Test::More::is( $_[1], $_[2]->command_name, '$command is $message->command_name' );
    push @messages, $_[2];
+   return 1;
 }
 
 sub on_message_FOO { $foo_received++ }
