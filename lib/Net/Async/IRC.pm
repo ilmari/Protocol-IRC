@@ -67,8 +67,6 @@ sub _init
 {
    my $self = shift;
    $self->SUPER::_init( @_ );
-
-   $self->{server_info} = {};
 }
 
 =head1 PARAMETERS
@@ -266,33 +264,6 @@ sub login
 
       return $f;
    })->on_fail( sub { undef $self->{login_f} } );
-}
-
-=head2 $info = $irc->server_info( $key )
-
-Returns an item of information from the server's C<004> line. C<$key> should
-one of
-
-=over 8
-
-=item * host
-
-=item * version
-
-=item * usermodes
-
-=item * channelmodes
-
-=back
-
-=cut
-
-sub server_info
-{
-   my $self = shift;
-   my ( $key ) = @_;
-
-   return $self->{server_info}{$key};
 }
 
 =head2 $irc->change_nick( $newnick )
@@ -516,17 +487,6 @@ sub on_message_RPL_WELCOME
    undef $self->{on_login};
 
    # Don't eat it
-   return 0;
-}
-
-sub on_message_RPL_MYINFO
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-
-   @{$self->{server_info}}{qw( host version usermodes channelmodes )} =
-      @{$hints}{qw( serverhost serverversion usermodes channelmodes )};
-
    return 0;
 }
 

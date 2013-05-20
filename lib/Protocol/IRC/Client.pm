@@ -91,6 +91,44 @@ sub on_message_RPL_ISUPPORT
    return 0;
 }
 
+=head2 $info = $irc->server_info( $key )
+
+Returns an item of information from the server's C<004> line. C<$key> should
+one of
+
+=over 8
+
+=item * host
+
+=item * version
+
+=item * usermodes
+
+=item * channelmodes
+
+=back
+
+=cut
+
+sub server_info
+{
+   my $self = shift;
+   my ( $key ) = @_;
+
+   return $self->{Protocol_IRC_server_info}{$key};
+}
+
+sub on_message_RPL_MYINFO
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   @{$self->{Protocol_IRC_server_info}}{qw( host version usermodes channelmodes )} =
+      @{$hints}{qw( serverhost serverversion usermodes channelmodes )};
+
+   return 0;
+}
+
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>

@@ -15,7 +15,10 @@ sub write_irc
    length $line == 0 or die '$irc failed to read all of the line';
 }
 
+write_irc( ":server 004 YourNick irc.example.com TestIRC iow lvhopsmntikr$CRLF" );
 write_irc( ':server 005 YourNick MAXCHANNELS=10 NICKLEN=30 PREFIX=(ohv)@%+ CASEMAPPING=rfc1459 CHANMODES=beI,k,l,imnpsta CHANTYPES=#& :are supported by this server' . $CRLF );
+
+is( $irc->server_info( "channelmodes" ), "lvhopsmntikr", 'server_info channelmodes' );
 
 is( $irc->isupport( "MAXCHANNELS" ), "10", 'ISUPPORT MAXCHANNELS is 10' );
 

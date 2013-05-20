@@ -87,12 +87,4 @@ ok( $logged_in, 'Client receives logged in event' );
 ok( $irc->is_connected, '$irc->is_connected' );
 ok( $irc->is_loggedin, '$irc->is_loggedin' );
 
-$newclient->syswrite( ":irc.example.com 002 MyNick :Your host is irc.example.com, running TestIRC$CRLF" );
-$newclient->syswrite( ":irc.example.com 003 MyNick :This server was created Fri Jul 11 2008 at 21:31:04 BST$CRLF" );
-$newclient->syswrite( ":irc.example.com 004 MyNick irc.example.com TestIRC iow lvhopsmntikr$CRLF" );
-
-wait_for { defined $irc->server_info( "channelmodes" ) };
-
-is( $irc->server_info( "channelmodes" ), "lvhopsmntikr", 'server_info channelmodes' );
-
 done_testing;
