@@ -52,8 +52,9 @@ A method called C<on_message>
 =back
 
 For server numeric replies, if the numeric reply has a known name, it will be
-attempted first at its known name, before falling back to the numeric.
-Unrecognised numerics will be attempted only at their numeric value.
+attempted first at its known name, before falling back to the numeric if it
+was not handled. Unrecognised numerics will be attempted only at their numeric
+value.
 
 Because of the wide variety of messages in IRC involving various types of data
 the message handling specific cases for certain types of message, including
@@ -195,7 +196,7 @@ sub on_read
       $self->invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
       $self->invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
 
-      if( $message->command ne $command ) { # numerics
+      if( !$hints->{handled} and $message->command ne $command ) { # numerics
          my $numeric = $message->command;
          $self->invoke( "on_message_$numeric", $message, $hints ) and $hints->{handled} = 1;
          $self->invoke( "on_message", $numeric, $message, $hints ) and $hints->{handled} = 1;
