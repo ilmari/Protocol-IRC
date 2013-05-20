@@ -244,6 +244,14 @@ sub send_ctcpreply
    $self->send_message( "NOTICE", undef, $target, "\001$verb $argstr\001" );
 }
 
+=head1 ISUPPORT-DRIVEN UTILITIES
+
+The following methods are controlled by the server information given in the
+C<ISUPPORT> settings. They use the C<isupport> required method to query the
+information required.
+
+=cut
+
 =head2 $name_folded = $irc->casefold_name( $name )
 
 Returns the C<$name>, folded in case according to the server's C<CASEMAPPING>
@@ -271,6 +279,104 @@ sub casefold_name
    $nick =~ tr/^/~/ unless $mapping eq "strict-rfc1459";
 
    return lc $nick;
+}
+
+=head2 $cmp = $irc->cmp_prefix_flags( $lhs, $rhs )
+
+Compares two channel occupant prefix flags, and returns a signed integer to
+indicate which of them has higher priviledge, according to the server's
+ISUPPORT declaration. Suitable for use in a C<sort()> function or similar.
+
+=cut
+
+sub cmp_prefix_flags
+{
+   my $self = shift;
+   my ( $lhs, $rhs ) = @_;
+
+   return undef unless defined $lhs and defined $rhs;
+
+   # As a special case, compare emptystring as being lower than voice
+   return 0 if $lhs eq "" and $rhs eq "";
+   return 1 if $rhs eq "";
+   return -1 if $lhs eq "";
+
+   my $PREFIX_FLAGS = $self->isupport( 'prefix_flags' );
+
+   ( my $lhs_index = index $PREFIX_FLAGS, $lhs ) > -1 or return undef;
+   ( my $rhs_index = index $PREFIX_FLAGS, $rhs ) > -1 or return undef;
+
+   # IRC puts these in greatest-first, so we need to swap the ordering here
+   return $rhs_index <=> $lhs_index;
+}
+
+=head2 $cmp = $irc->cmp_prefix_modes( $lhs, $rhs )
+
+Similar to C<cmp_prefix_flags>, but compares channel occupant C<MODE> command
+flags.
+
+=cut
+
+sub cmp_prefix_modes
+{
+   my $self = shift;
+   my ( $lhs, $rhs ) = @_;
+
+   return undef unless defined $lhs and defined $rhs;
+
+   my $PREFIX_MODES = $self->isupport( "prefix_modes" );
+
+   ( my $lhs_index = index $PREFIX_MODES, $lhs ) > -1 or return undef;
+   ( my $rhs_index = index $PREFIX_MODES, $rhs ) > -1 or return undef;
+
+   # IRC puts these in greatest-first, so we need to swap the ordering here
+   return $rhs_index <=> $lhs_index;
+}
+
+=head2 $flag = $irc->prefix_mode2flag( $mode )
+
+Converts a channel occupant C<MODE> flag (such as C<o>) into a name prefix
+flag (such as C<@>).
+
+=cut
+
+sub prefix_mode2flag
+{
+   my $self = shift;
+   my ( $mode ) = @_;
+
+   return $self->isupport( 'prefix_map_m2f' )->{$mode};
+}
+
+=head2 $mode = $irc->prefix_flag2mode( $flag )
+
+The inverse of C<prefix_mode2flag>.
+
+=cut
+
+sub prefix_flag2mode
+{
+   my $self = shift;
+   my ( $flag ) = @_;
+
+   return $self->isupport( 'prefix_map_f2m' )->{$flag};
+}
+
+=head2 $classification = $irc->classify_name( $name )
+
+Returns C<channel> if the given name matches the pattern of names allowed for
+channels according to the server's C<CHANTYPES> C<ISUPPORT>. Returns C<user>
+if not.
+
+=cut
+
+sub classify_name
+{
+   my $self = shift;
+   my ( $name ) = @_;
+
+   return "channel" if $name =~ $self->isupport( "channame_re" );
+   return "user"; # TODO: Perhaps we can be a bit stricter - only check for valid nick chars?
 }
 
 =head1 INTERNAL MESSAGE HANDLING
@@ -339,6 +445,53 @@ sub invoke
    return unless $self->can( $name );
    return $self->$name( @args );
 }
+
+=head2 $value = $irc->isupport( $field )
+
+Should return the value of the given C<ISUPPORT> field.
+
+As well as the all-capitals server-supplied fields, the following fields may
+be requested. Their names are all lowercase and contain underscores, to
+distinguish them from server-supplied fields.
+
+=over 8
+
+=item prefix_modes => STRING
+
+The mode characters from C<PREFIX> (e.g. C<ohv>)
+
+=item prefix_flags => STRING
+
+The flag characters from C<PREFIX> (e.g. C<@%+>)
+
+=item prefixflag_re => Regexp
+
+A precompiled regexp that matches any of the prefix flags
+
+=item prefix_map_m2f => HASH
+
+A map from mode characters to flag characters
+
+=item prefix_map_f2m => HASH
+
+A map from flag characters to mode characters
+
+=item chanmodes_list => ARRAY
+
+A 4-element array containing the split portions of C<CHANMODES>;
+
+ [ $listmodes, $argmodes, $argsetmodes, $boolmodes ]
+
+=item channame_re => Regexp
+
+A precompiled regexp that matches any string beginning with a channel prefix
+character in C<CHANTYPES>.
+
+=back
+
+=cut
+
+sub isupport { croak "Attempted to invoke abstract ->isupport on " . ref $_[0] }
 
 =head1 AUTHOR
 
