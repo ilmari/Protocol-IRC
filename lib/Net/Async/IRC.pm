@@ -248,7 +248,7 @@ sub login
    my $on_login = delete $args{on_login};
    ref $on_login eq "CODE" or croak "Expected 'on_login' as a CODE reference";
 
-   return $self->{login_f} ||= $self->connect( %args )->and_then( sub {
+   return $self->{login_f} ||= $self->connect( %args )->then( sub {
       $self->send_message( "PASS", undef, $pass ) if defined $pass;
 
       $self->send_message( "USER", undef, $user, "0", "*", $realname );
