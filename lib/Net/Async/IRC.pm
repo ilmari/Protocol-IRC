@@ -167,6 +167,10 @@ sub connect
    my $self = shift;
    my %args = @_;
 
+   # Largely for unit testing
+   return $self->{connect_f} ||= Future->new->done( $self ) if
+      $self->read_handle;
+
    my $on_error = delete $args{on_error};
 
    $args{service} ||= "6667";

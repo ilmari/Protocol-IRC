@@ -21,7 +21,7 @@ my ( $S1, $S2 ) = IO::Async::OS->socketpair() or die "Cannot create socket pair 
 my @messages;
 
 my $irc = Net::Async::IRC->new(
-   transport => IO::Async::Stream->new( handle => $S1 ),
+   handle => $S1,
    on_message => sub {
       my ( $self, $command, $message, $hints ) = @_;
       # Only care about synthesized events, not real ones

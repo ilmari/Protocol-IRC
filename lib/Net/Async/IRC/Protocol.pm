@@ -10,7 +10,7 @@ use warnings;
 
 our $VERSION = '0.07';
 
-use base qw( IO::Async::Protocol::Stream Protocol::IRC );
+use base qw( IO::Async::Stream Protocol::IRC );
 
 use Carp;
 
