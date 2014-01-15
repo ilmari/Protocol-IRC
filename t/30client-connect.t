@@ -6,7 +6,6 @@ use warnings;
 use Test::More;
 use IO::Async::Test;
 use IO::Async::Loop;
-use IO::Async::Stream; # placate IO::Async bug - shouldn't be necessary
 
 use IO::Socket::INET;
 
