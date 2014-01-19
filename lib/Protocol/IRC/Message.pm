@@ -589,8 +589,8 @@ __DATA__
 353=RPL_NAMEREPLY       | 2=target_name,3@=names | -names
 
 366=RPL_ENDOFNAMES      | target_name | +names
-367=RPL_BANLIST         | target_name,mask,by_nick,timestamp
-368=RPL_ENDOFBANLIST    | target_name
+367=RPL_BANLIST         | target_name,mask,by_nick,timestamp | -bans
+368=RPL_ENDOFBANLIST    | target_name | +bans
 369=RPL_ENDOFWHOWAS     | target_name
 
 372=RPL_MOTD            | text | -motd

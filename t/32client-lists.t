@@ -53,6 +53,26 @@ $S2->syswrite( ':irc.example.com 001 MyNick :Welcome to IRC MyNick!me@your.host'
 wait_for { $login_f->is_ready };
 $login_f->get;
 
+# Standard hints
+my %HINTS = (
+   prefix_nick        => undef,
+   prefix_nick_folded => undef,
+   prefix_user        => undef,
+   prefix_host        => "irc.example.com",
+   prefix_name        => "irc.example.com",
+   prefix_name_folded => "irc.example.com",
+   prefix_is_me       => '',
+   synthesized        => 1,
+   handled            => 1,
+);
+my %CHANNEL_HINTS = (
+   %HINTS,
+   target_name        => '#channel',
+   target_name_folded => '#channel',
+   target_type        => 'channel',
+   target_is_me       => '',
+);
+
 # motd list
 {
    undef @messages;
@@ -67,19 +87,11 @@ $login_f->get;
 
    is( $command, "motd", '$command for motd' );
 
-   is_deeply( $hints, { prefix_nick  => undef,
-                        prefix_nick_folded => undef,
-                        prefix_user  => undef,
-                        prefix_host  => "irc.example.com",
-                        prefix_name  => "irc.example.com",
-                        prefix_name_folded => "irc.example.com",
-                        prefix_is_me => '',
-                        motd         => [
+   is_deeply( $hints, { %HINTS,
+                        motd => [
                            '- Here is the Message Of The Day -',
                            '- some more of the message -',
-                        ],
-                        synthesized  => 1,
-                        handled      => 1 }, '$hints for names' );
+                        ] }, '$hints for names' );
 }
 
 # names list
@@ -95,24 +107,33 @@ $login_f->get;
 
    is( $command, "names", '$command for names' );
 
-   is_deeply( $hints, { prefix_nick  => undef,
-                        prefix_nick_folded => undef,
-                        prefix_user  => undef,
-                        prefix_host  => "irc.example.com",
-                        prefix_name  => "irc.example.com",
-                        prefix_name_folded => "irc.example.com",
-                        prefix_is_me => '',
-                        target_name  => '#channel',
-                        target_name_folded => '#channel',
-                        target_type  => 'channel',
-                        target_is_me => '',
-                        names        => {
+   is_deeply( $hints, { %CHANNEL_HINTS,
+                        names => {
                            some  => { nick => "Some",  flag => '@' },
                            users => { nick => "Users", flag => '+' },
                            here  => { nick => "Here",  flag => '' },
-                        },
-                        synthesized  => 1,
-                        handled      => 1 }, '$hints for names' );
+                        } }, '$hints for names' );
+}
+
+# bans list
+{
+   undef @messages;
+
+   $S2->syswrite( ':irc.example.com 367 MyNick #channel a*!a@a.com Banner 12345' . $CRLF .
+                  ':irc.example.com 367 MyNick #channel b*!b@b.com Banner 12346' . $CRLF .
+                  ':irc.example.com 368 MyNick #channel :End of BANS' . $CRLF );
+
+   wait_for { @messages };
+
+   my ( $command, $msg, $hints ) = @{ shift @messages };
+
+   is( $command, "bans", '$command for bans' );
+
+   is_deeply( $hints, { %CHANNEL_HINTS,
+                        bans => [
+                           { mask => 'a*!a@a.com', by_nick => "Banner", by_nick_folded => "banner", timestamp => 12345 },
+                           { mask => 'b*!b@b.com', by_nick => "Banner", by_nick_folded => "banner", timestamp => 12346 },
+                        ] }, '$hints for bans' );
 }
 
 done_testing;

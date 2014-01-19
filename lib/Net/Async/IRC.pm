@@ -619,21 +619,26 @@ UNIX timestamp the ban was created
 
 =cut
 
-sub on_message_RPL_BANLIST
+sub on_gate_done_bans
 {
    my $self = shift;
-   my ( $message, $hints ) = @_;
-   $self->build_list_from_hints( "bans", $hints,
-      qw( mask by_nick by_nick_folded timestamp )
-   );
-   return 1;
-}
+   my ( $message, $hints, $data ) = @_;
 
-sub on_message_RPL_ENDOFBANS
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-   $self->pull_list_and_invoke( "bans", $message, $hints );
+   my @bans = map {
+      my $b = $_;
+      +{ map { $_ => $b->{$_} } qw( mask by_nick by_nick_folded timestamp ) }
+   } @$data;
+
+   my %hints = (
+      %$hints,
+      synthesized => 1,
+      bans => \@bans,
+   );
+
+   $self->invoke( "on_message_bans", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message", "bans", $message, \%hints ) and $hints{handled} = 1;
+
+   return $hints{handled};
 }
 
 =head2 RPL_MOTD, RPL_MOTDSTART and RPL_ENDOFMOTD
