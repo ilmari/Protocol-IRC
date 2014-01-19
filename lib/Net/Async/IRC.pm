@@ -444,7 +444,7 @@ sub caps_supported
    return $self->{caps_supported};
 }
 
-=head2 $supported = $irc->cap_supported
+=head2 $supported = $irc->cap_supported( $cap )
 
 Returns a boolean indicating if the server supports the named capability.
 
@@ -470,7 +470,7 @@ sub caps_enabled
    return $self->{caps_enabled};
 }
 
-=head2 $enabled = $irc->cap_enabled
+=head2 $enabled = $irc->cap_enabled( $cap )
 
 Returns a boolean indicating if the client successfully enabled the named
 capability.
