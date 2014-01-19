@@ -311,15 +311,21 @@ in one of the following places:
 
 =item 1.
 
-A method called C<on_gate_EFFECT>
+A method called C<on_gate_EFFECT_GATE>
 
- $client->on_gate_EFFECT( 'GATE', $data, $hints )
+ $client->on_gate_EFFECT_GATE( $message, $hints, $data )
 
 =item 2.
 
+A method called C<on_gate_EFFECT>
+
+ $client->on_gate_EFFECT( 'GATE', $message, $hints, $data )
+
+=item 3.
+
 A method called C<on_gate>
 
- $client->on_gate( 'EFFECT, 'GATE', $data, $hints )
+ $client->on_gate( 'EFFECT, 'GATE', $message, $hints, $data )
 
 =back
 
@@ -342,8 +348,9 @@ sub on_message_gate
       synthesized => 1,
    );
 
-   $self->invoke( "on_gate_$effect", $gate, $data, \%hints ) and $hints{handled} = 1;
-   $self->invoke( "on_gate", $effect, $gate, $data, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_gate_${effect}_$gate", $message, \%hints, $data ) and $hints{handled} = 1;
+   $self->invoke( "on_gate_$effect", $gate, $message, \%hints, $data ) and $hints{handled} = 1;
+   $self->invoke( "on_gate", $effect, $gate, $message, \%hints, $data ) and $hints{handled} = 1;
 
    return $hints{handled};
 }

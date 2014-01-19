@@ -21,7 +21,7 @@ write_irc( ':irc.example.com 375 MyNick :- Here is the Message Of The Day -' . $
 write_irc( ':irc.example.com 372 MyNick :- some more of the message -' . $CRLF );
 write_irc( ':irc.example.com 376 MyNick :End of /MOTD command.' . $CRLF );
 
-my ( $kind, $gate, $data, $hints ) = @{ shift @gates };
+my ( $kind, $gate, $message, $hints, $data ) = @{ shift @gates };
 
 is( $kind, "done", 'Gate $kind is done' );
 is( $gate, "motd", 'Gate $gate is motd' );
