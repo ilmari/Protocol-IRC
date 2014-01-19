@@ -67,6 +67,34 @@ my ( $S1, $S2 ) = IO::Async::OS->socketpair() or die "Cannot create socket pair 
 
    wait_for { $login_f->is_ready };
    $login_f->get;
+
+   $loop->remove( $irc );
+}
+
+# CAP ignored by server
+{
+   my $irc = Net::Async::IRC->new(
+      handle => $S1,
+      use_caps => [qw( multi-prefix )],
+   );
+   $loop->add( $irc );
+
+   my $login_f = $irc->login(
+      nick => "MyNick",
+      user => "me",
+      realname => "My real name",
+   );
+
+   my $serverstream = "";
+   wait_for_stream { $serverstream =~ m/(?:.*$CRLF){3}/ } $S2 => $serverstream;
+
+   $S2->syswrite( ':irc.example.com 001 MyNick :Welcome to IRC MyNick!me@your.host' . $CRLF );
+
+   wait_for { $login_f->is_ready };
+   $login_f->get;
+
+   is( $irc->caps_supported, undef, '$irc->caps_supported undef for CAPless server' );
+   is( $irc->caps_enabled,   undef, '$irc->caps_enabled undef for CAPless server' );
 }
 
 done_testing;

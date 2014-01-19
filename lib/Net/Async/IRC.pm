@@ -434,7 +434,8 @@ sub _on_message_cap_reply
 =head2 $caps = $irc->caps_supported
 
 Returns a HASH whose keys give the capabilities listed by the server as
-supported in its C<CAP LS> response.
+supported in its C<CAP LS> response. If the server ignored the C<CAP>
+negotiation then this method returns C<undef>.
 
 =cut
 
@@ -460,7 +461,8 @@ sub cap_supported
 =head2 $caps = $irc->caps_enabled
 
 Returns a HASH whose keys give the capabilities successfully enabled by the
-server as part of the C<CAP REQ> login sequence.
+server as part of the C<CAP REQ> login sequence. If the server ignored the
+C<CAP> negotiation then this method returns C<undef>.
 
 =cut
 
