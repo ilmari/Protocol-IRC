@@ -559,29 +559,19 @@ containing:
 
 =cut
 
-sub on_message_RPL_NAMEREPLY
+sub on_gate_done_names
 {
    my $self = shift;
-   my ( $message, $hints ) = @_;
+   my ( $message, $hints, $data ) = @_;
 
-   $self->build_list( "names", $hints->{target_name_folded}, $_ ) foreach @{ $hints->{names} };
-
-   return 1;
-}
-
-sub on_message_RPL_ENDOFNAMES
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-
-   my $names = $self->pull_list( "names", $hints->{target_name_folded} );
+   my @names = map { @{ $_->{names} } } @$data;
 
    my $prefixflag_re = $self->isupport( 'prefixflag_re' );
    my $re = qr/^($prefixflag_re)?(.*)$/;
 
    my %names;
 
-   foreach my $name ( @$names ) {
+   foreach my $name ( @names ) {
       my ( $flag, $nick ) = $name =~ $re or next;
 
       $flag ||= ''; # make sure it's defined
@@ -655,27 +645,22 @@ containing the lines of the MOTD.
 
 =cut
 
-sub on_message_RPL_MOTD
+sub on_gate_done_motd
 {
    my $self = shift;
-   my ( $message, $hints ) = @_;
-   $self->build_list( "motd", undef, $hints->{text} );
-   return 1;
-}
+   my ( $message, $hints, $data ) = @_;
+   my $values = [ map { $_->{text} } @$data ];
 
-sub on_message_RPL_MOTDSTART
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-   $self->build_list( "motd", undef, $hints->{text} );
-   return 1;
-}
+   my %hints = (
+      %$hints,
+      synthesized => 1,
+      motd => $values,
+   );
 
-sub on_message_RPL_ENDOFMOTD
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-   $self->pull_list_and_invoke( "motd", $message, $hints );
+   $self->invoke( "on_message_motd", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message", "motd", $message, \%hints ) and $hints{handled} = 1;
+
+   return $hints{handled};
 }
 
 =head1 SEE ALSO

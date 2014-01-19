@@ -586,9 +586,9 @@ __DATA__
 349=RPL_ENDOFEXCEPTLIST | target_name
 
 352=RPL_WHOREPLY        | target_name,user_ident,user_host,user_server,user_nick,user_flags,text
-353=RPL_NAMEREPLY       | 2=target_name,3@=names
+353=RPL_NAMEREPLY       | 2=target_name,3@=names | -names
 
-366=RPL_ENDOFNAMES      | target_name
+366=RPL_ENDOFNAMES      | target_name | +names
 367=RPL_BANLIST         | target_name,mask,by_nick,timestamp
 368=RPL_ENDOFBANLIST    | target_name
 369=RPL_ENDOFWHOWAS     | target_name

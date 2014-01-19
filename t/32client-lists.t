@@ -53,62 +53,66 @@ $S2->syswrite( ':irc.example.com 001 MyNick :Welcome to IRC MyNick!me@your.host'
 wait_for { $login_f->is_ready };
 $login_f->get;
 
-undef @messages;
+# motd list
+{
+   undef @messages;
 
-$S2->syswrite( ':irc.example.com 375 MyNick :- Here is the Message Of The Day -' . $CRLF .
-               ':irc.example.com 372 MyNick :- some more of the message -' . $CRLF .
-               ':irc.example.com 376 MyNick :End of /MOTD command.' . $CRLF );
+   $S2->syswrite( ':irc.example.com 375 MyNick :- Here is the Message Of The Day -' . $CRLF .
+                  ':irc.example.com 372 MyNick :- some more of the message -' . $CRLF .
+                  ':irc.example.com 376 MyNick :End of /MOTD command.' . $CRLF );
 
-wait_for { @messages };
+   wait_for { @messages };
 
-my ( $command, $msg, $hints );
+   my ( $command, $msg, $hints ) = @{ shift @messages };
 
-( $command, $msg, $hints ) = @{ shift @messages };
+   is( $command, "motd", '$command for motd' );
 
-is( $command, "motd", '$command for motd' );
+   is_deeply( $hints, { prefix_nick  => undef,
+                        prefix_nick_folded => undef,
+                        prefix_user  => undef,
+                        prefix_host  => "irc.example.com",
+                        prefix_name  => "irc.example.com",
+                        prefix_name_folded => "irc.example.com",
+                        prefix_is_me => '',
+                        motd         => [
+                           '- Here is the Message Of The Day -',
+                           '- some more of the message -',
+                        ],
+                        synthesized  => 1,
+                        handled      => 1 }, '$hints for names' );
+}
 
-is_deeply( $hints, { prefix_nick  => undef,
-                     prefix_nick_folded => undef,
-                     prefix_user  => undef,
-                     prefix_host  => "irc.example.com",
-                     prefix_name  => "irc.example.com",
-                     prefix_name_folded => "irc.example.com",
-                     prefix_is_me => '',
-                     motd         => [
-                        '- Here is the Message Of The Day -',
-                        '- some more of the message -',
-                     ],
-                     synthesized  => 1,
-                     handled      => 1 }, '$hints for names' );
+# names list
+{
+   undef @messages;
 
-undef @messages;
+   $S2->syswrite( ':irc.example.com 353 MyNick = #channel :@Some +Users Here' . $CRLF .
+                  ':irc.example.com 366 MyNick #channel :End of NAMES list' . $CRLF );
 
-$S2->syswrite( ':irc.example.com 353 MyNick = #channel :@Some +Users Here' . $CRLF .
-               ':irc.example.com 366 MyNick #channel :End of NAMES list' . $CRLF );
+   wait_for { @messages };
 
-wait_for { @messages };
+   my ( $command, $msg, $hints ) = @{ shift @messages };
 
-( $command, $msg, $hints ) = @{ shift @messages };
+   is( $command, "names", '$command for names' );
 
-is( $command, "names", '$command for names' );
-
-is_deeply( $hints, { prefix_nick  => undef,
-                     prefix_nick_folded => undef,
-                     prefix_user  => undef,
-                     prefix_host  => "irc.example.com",
-                     prefix_name  => "irc.example.com",
-                     prefix_name_folded => "irc.example.com",
-                     prefix_is_me => '',
-                     target_name  => '#channel',
-                     target_name_folded => '#channel',
-                     target_type  => 'channel',
-                     target_is_me => '',
-                     names        => {
-                        some  => { nick => "Some",  flag => '@' },
-                        users => { nick => "Users", flag => '+' },
-                        here  => { nick => "Here",  flag => '' },
-                     },
-                     synthesized  => 1,
-                     handled      => 1 }, '$hints for names' );
+   is_deeply( $hints, { prefix_nick  => undef,
+                        prefix_nick_folded => undef,
+                        prefix_user  => undef,
+                        prefix_host  => "irc.example.com",
+                        prefix_name  => "irc.example.com",
+                        prefix_name_folded => "irc.example.com",
+                        prefix_is_me => '',
+                        target_name  => '#channel',
+                        target_name_folded => '#channel',
+                        target_type  => 'channel',
+                        target_is_me => '',
+                        names        => {
+                           some  => { nick => "Some",  flag => '@' },
+                           users => { nick => "Users", flag => '+' },
+                           here  => { nick => "Here",  flag => '' },
+                        },
+                        synthesized  => 1,
+                        handled      => 1 }, '$hints for names' );
+}
 
 done_testing;
