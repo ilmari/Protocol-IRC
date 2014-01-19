@@ -90,9 +90,10 @@ If logged in, changing the C<nick> property is equivalent to calling
 C<change_nick>. Changing the other properties will not take effect until the
 next login.
 
-=item use_cap => BOOL
+=item use_caps => ARRAY of STRING
 
-Attempts to negotiate IRC v3.1 CAP at connect time.
+Attempts to negotiate IRC v3.1 CAP at connect time. The array gives the names
+of capabilities which will be requested, if the server supports them.
 
 =back
 
@@ -103,7 +104,7 @@ sub configure
    my $self = shift;
    my %args = @_;
 
-   for (qw( user realname use_cap )) {
+   for (qw( user realname use_caps )) {
       $self->{$_} = delete $args{$_} if exists $args{$_};
    }
 
@@ -273,7 +274,7 @@ sub login
       croak "Expected 'on_login' to be a CODE reference";
 
    return $self->{login_f} ||= $self->connect( %args )->then( sub {
-      $self->send_message( "CAP", undef, "LS" ) if $self->{use_cap};
+      $self->send_message( "CAP", undef, "LS" ) if $self->{use_caps};
 
       $self->send_message( "PASS", undef, $pass ) if defined $pass;
       $self->send_message( "USER", undef, $user, "0", "*", $realname );
@@ -399,9 +400,35 @@ sub on_message_cap_LS
    my $self = shift;
    my ( $message, $hints ) = @_;
 
-   $self->{caps_supported} = $hints->{caps};
+   my $supported = $self->{caps_supported} = $hints->{caps};
+
+   my @request = grep { $supported->{$_} } @{$self->{use_caps}};
+
+   if( @request ) {
+      $self->{caps_enabled} = { map { $_ => undef } @request };
+      $self->send_message( "CAP", undef, "REQ", join( " ", @request ) );
+   }
+   else {
+      $self->send_message( "CAP", undef, "END" );
+   }
+
+   return 1;
+}
+
+*on_message_cap_ACK = *on_message_cap_NAK = \&_on_message_cap_reply;
+sub _on_message_cap_reply
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+   my $ack = $hints->{verb} eq "ACK";
+
+   $self->{caps_enabled}{$_} = $ack for keys %{ $hints->{caps} };
+
+   # Are any outstanding
+   !defined and return 1 for values %{ $self->{caps_enabled} };
 
    $self->send_message( "CAP", undef, "END" );
+   return 1;
 }
 
 =head2 $caps = $irc->caps_supported
@@ -428,6 +455,33 @@ sub cap_supported
    my $self = shift;
    my ( $cap ) = @_;
    return !!$self->{caps_supported}{$cap};
+}
+
+=head2 $caps = $irc->caps_enabled
+
+Returns a HASH whose keys give the capabilities successfully enabled by the
+server as part of the C<CAP REQ> login sequence.
+
+=cut
+
+sub caps_enabled
+{
+   my $self = shift;
+   return $self->{caps_enabled};
+}
+
+=head2 $enabled = $irc->cap_enabled
+
+Returns a boolean indicating if the client successfully enabled the named
+capability.
+
+=cut
+
+sub cap_enabled
+{
+   my $self = shift;
+   my ( $cap ) = @_;
+   return !!$self->{caps_enabled}{$cap};
 }
 
 =head1 MESSAGE HANDLING

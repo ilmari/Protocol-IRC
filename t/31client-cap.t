@@ -21,7 +21,7 @@ my ( $S1, $S2 ) = IO::Async::OS->socketpair() or die "Cannot create socket pair 
 {
    my $irc = Net::Async::IRC->new(
       handle => $S1,
-      use_cap => 1,
+      use_caps => [qw( multi-prefix )],
    );
    $loop->add( $irc );
 
@@ -43,14 +43,25 @@ my ( $S1, $S2 ) = IO::Async::OS->socketpair() or die "Cannot create socket pair 
 
    wait_for_stream { $serverstream =~ m/.*$CRLF/ } $S2 => $serverstream;
 
-   is( $serverstream, "CAP END$CRLF", 'Client finishes CAP' );
+   is( $serverstream, "CAP REQ multi-prefix$CRLF", 'Client requests caps' );
+   $serverstream = "";
 
    is_deeply( $irc->caps_supported,
               { 'multi-prefix' => 1,
                 'sasl'         => 1 },
               '$irc->caps_supported' );
-
    ok( $irc->cap_supported( "multi-prefix" ), '$irc->cap_supported' );
+
+   $S2->syswrite( ':irc.example.com CAP * ACK :multi-prefix' . $CRLF );
+
+   wait_for_stream { $serverstream =~ m/.*$CRLF/ } $S2 => $serverstream;
+
+   is( $serverstream, "CAP END$CRLF", 'Client finishes CAP' );
+
+   is_deeply( $irc->caps_enabled,
+              { 'multi-prefix' => 1 },
+              '$irc->caps_enabled' );
+   ok( $irc->cap_enabled( "multi-prefix" ), '$irc->cap_enabled' );
 
    $S2->syswrite( ':irc.example.com 001 MyNick :Welcome to IRC MyNick!me@your.host' . $CRLF );
 
