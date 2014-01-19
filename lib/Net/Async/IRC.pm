@@ -41,13 +41,10 @@ C<Net::Async::IRC> - use IRC with C<IO::Async>
 
  $irc->login(
     nick => "MyName",
-
     host => "irc.example.org",
+ )->get;
 
-    on_login => sub {
-       $irc->send_message( "PRIVMSG", undef, "YourName", "Hello world!" );
-    },
- );
+ $irc->send_message( "PRIVMSG", undef, "YourName", "Hello world!" );
 
  $loop->loop_forever;
 
@@ -210,7 +207,7 @@ sub connect
    )->on_fail( sub { undef $self->{connect_f} } );
 }
 
-=head2 $irc->login( %args )
+=head2 $irc->login( %args ) ==> $irc
 
 Logs in to the IRC network, connecting first using the C<connect> method if
 required. Takes the following named arguments:
@@ -230,6 +227,19 @@ methods.
 
 Server password to connect with.
 
+=back
+
+Any other arguments that are passed, are forwarded to the C<connect> method if
+it is required; i.e. if C<login> is invoked when not yet connected to the
+server.
+
+=head2 $irc->login( %args )
+
+The following additional arguments are used to provide continuations when not
+returning a Future.
+
+=over 8
+
 =item on_login => CODE
 
 A continuation to invoke once login is successful.
@@ -237,10 +247,6 @@ A continuation to invoke once login is successful.
  $on_login->( $irc )
 
 =back
-
-Any other arguments that are passed, are forwarded to the C<connect> method if
-it is required; i.e. if C<login> is invoked when not yet connected to the
-server.
 
 =cut
 
@@ -259,7 +265,8 @@ sub login
    }
 
    my $on_login = delete $args{on_login};
-   ref $on_login eq "CODE" or croak "Expected 'on_login' as a CODE reference";
+   !defined $on_login or ref $on_login eq "CODE" or 
+      croak "Expected 'on_login' to be a CODE reference";
 
    return $self->{login_f} ||= $self->connect( %args )->then( sub {
       $self->send_message( "PASS", undef, $pass ) if defined $pass;
@@ -272,7 +279,7 @@ sub login
 
       $self->{on_login} = sub {
          $f->done;
-         goto &$on_login;
+         goto &$on_login if $on_login;
       };
 
       return $f;

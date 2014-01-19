@@ -35,13 +35,10 @@ ok( defined $irc, 'defined $irc' );
 
 $loop->add( $irc );
 
-my $logged_in = 0;
-
-$irc->login(
+my $login_f = $irc->login(
    nick => "MyNick",
    user => "me",
    realname => "My real name",
-   on_login => sub { $logged_in = 1 },
 );
 
 my $serverstream = "";
@@ -53,7 +50,8 @@ is( $serverstream, "USER me 0 * :My real name$CRLF" .
 
 $S2->syswrite( ':irc.example.com 001 MyNick :Welcome to IRC MyNick!me@your.host' . $CRLF );
 
-wait_for { $logged_in };
+wait_for { $login_f->is_ready };
+$login_f->get;
 
 undef @messages;
 

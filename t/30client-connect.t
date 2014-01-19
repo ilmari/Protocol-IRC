@@ -33,13 +33,13 @@ $loop->add( $irc );
 
 ok( !$irc->is_connected, 'not $irc->is_connected' );
 
-my $f = $irc->connect(
+my $connect_f = $irc->connect(
    addr => [ AF_INET, SOCK_STREAM, 0, $addr ],
 );
 
-wait_for { $f->is_ready };
+wait_for { $connect_f->is_ready };
 
-ok( !$f->failure, 'Client connects to listening socket without failure' );
+ok( !$connect_f->failure, 'Client connects to listening socket without failure' );
 
 ok( $irc->is_connected, '$irc->is_connected' );
 ok( !$irc->is_loggedin, 'not $irc->is_loggedin' );
@@ -57,7 +57,7 @@ is( $serverstream, "HELLO world$CRLF", 'Server stream after initial client messa
 
 my $logged_in = 0;
 
-$irc->login(
+my $login_f = $irc->login(
    nick => "MyNick",
 
    on_login => sub { $logged_in = 1 },
@@ -72,7 +72,9 @@ is( $serverstream, "USER defaultuser 0 * :Default Real name$CRLF" .
 
 $newclient->syswrite( ":irc.example.com 001 MyNick :Welcome to IRC MyNick!defaultuser\@your.host.here$CRLF" );
 
-wait_for { $logged_in };
+wait_for { $login_f->is_ready };
+
+ok( !$login_f->failure, 'Client logs in without failure' );
 
 ok( $logged_in, 'Client receives logged in event' );
 ok( $irc->is_connected, '$irc->is_connected' );
