@@ -299,6 +299,55 @@ sub prepare_hints_RPL_CHANNELMODEIS
    $self->prepare_hints_channelmode( $message, $hints );
 }
 
+=head1 GATING MESSAGES
+
+If messages with a gating disposition are received, extra processing is
+applied. Messages whose gating effect is C<more> are simply collected up by
+pushing the hints hash to an array. When the effect of C<done> or C<fail> is
+eventually received, this collected array is passed as C<$data> to a handler
+in one of the following places:
+
+=over 4
+
+=item 1.
+
+A method called C<on_gate_EFFECT>
+
+ $client->on_gate_EFFECT( 'GATE', $data, $hints )
+
+=item 2.
+
+A method called C<on_gate>
+
+ $client->on_gate( 'EFFECT, 'GATE', $data, $hints )
+
+=back
+
+=cut
+
+sub on_message_gate
+{
+   my $self = shift;
+   my ( $effect, $gate, $message, $hints ) = @_;
+   my $target = $hints->{target_name_folded} // "*";
+
+   push @{ $self->{Protocol_IRC_gate}{$target}{$gate} }, $hints and return 1
+      if $effect eq "more";
+
+   my $data = delete $self->{Protocol_IRC_gate}{$target}{$gate};
+   keys %{ $self->{Protocol_IRC_gate}{$target} } or delete $self->{Protocol_IRC_gate}{$target};
+
+   my %hints = (
+      %$hints,
+      synthesized => 1,
+   );
+
+   $self->invoke( "on_gate_$effect", $gate, $data, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_gate", $effect, $gate, $data, \%hints ) and $hints{handled} = 1;
+
+   return $hints{handled};
+}
+
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
