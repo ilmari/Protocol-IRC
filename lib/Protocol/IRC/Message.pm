@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2008-2013 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2008-2014 -- leonerd@leonerd.org.uk
 
 package Protocol::IRC::Message;
 
@@ -354,27 +354,6 @@ $ARG_NAMES{$_} = { target_name => 0 } for qw(
    JOIN LIST NAMES WHO WHOIS WHOWAS
 );
 
-while( <DATA> ) {
-   chomp;
-   my ( $numname, $args ) = split m/\s*\|\s*/, $_ or next;
-   my ( $num, $name ) = split m/=/, $numname;
-
-   my $index = 0;
-   my %args = map {
-      if( m/^(.*)=(.*)$/ ) {
-         $index = $1;
-         ( $2 => $1 )
-      }
-      else {
-         ( $_ => ++$index );
-      }
-   } split m/,/, $args;
-
-   $NUMERIC_NAMES{$num} = $name;
-   $ARG_NAMES{$num} = \%args;
-}
-close DATA;
-
 # TODO: 472 ERR_UNKNOWNMODE: <char> :is unknown mode char to me for <channel>
 # How to parse this one??
 
@@ -488,11 +467,68 @@ sub named_args
    return \%named_args;
 }
 
+=head2 $disp = $message->gate_disposition
+
+Returns the "gating disposition" of the message. This defines how a reply
+message from the server combines with other messages in response of a command
+sent by the client. The disposition is either C<undef>, or a string consisting
+of a type symbol and a gate name. If defined, the symbol defines what effect
+it has on the gate name.
+
+=over 4
+
+=item -GATE
+
+Adds more information to the response for that gate, but doesn't yet complete
+it.
+
+=item +GATE
+
+Completes the gate with a successful result.
+
+=item !GATE
+
+Completes the gate with a failure result.
+
+=back
+
+=cut
+
+my %GATE_DISPOSITIONS;
+
+sub gate_disposition
+{
+   my $self = shift;
+   return $GATE_DISPOSITIONS{ $self->command };
+}
+
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
 
 =cut
+
+while( <DATA> ) {
+   chomp;
+   my ( $numname, $args, $gating ) = split m/\s*\|\s*/, $_ or next;
+   my ( $num, $name ) = split m/=/, $numname;
+
+   my $index = 0;
+   my %args = map {
+      if( m/^(.*)=(.*)$/ ) {
+         $index = $1;
+         ( $2 => $1 )
+      }
+      else {
+         ( $_ => ++$index );
+      }
+   } split m/,/, $args;
+
+   $NUMERIC_NAMES{$num} = $name;
+   $ARG_NAMES{$num} = \%args;
+   $GATE_DISPOSITIONS{$num} = $gating if defined $gating;
+}
+close DATA;
 
 0x55AA;
 
@@ -557,9 +593,10 @@ __DATA__
 368=RPL_ENDOFBANLIST    | target_name
 369=RPL_ENDOFWHOWAS     | target_name
 
-372=RPL_MOTD            | text
-375=RPL_MOTDSTART       | text
-376=RPL_ENDOFMOTD       |
+372=RPL_MOTD            | text | -motd
+375=RPL_MOTDSTART       | text | -motd
+376=RPL_ENDOFMOTD       |      | +motd
+
 378=RPL_WHOISHOST       | target_name,text
 
 401=ERR_NOSUCHNICK              | target_name,text
