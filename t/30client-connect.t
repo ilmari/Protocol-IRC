@@ -31,23 +31,15 @@ my $irc = Net::Async::IRC->new(
 
 $loop->add( $irc );
 
-my $connected = 0;
-
 ok( !$irc->is_connected, 'not $irc->is_connected' );
 
-$irc->connect(
+my $f = $irc->connect(
    addr => [ AF_INET, SOCK_STREAM, 0, $addr ],
-
-   on_error => sub { die "Test died early - $_[0]\n" },
-
-   on_connected => sub {
-      $connected = 1;
-   },
 );
 
-wait_for { $connected };
+wait_for { $f->is_ready };
 
-ok( $connected, 'Client connects to listening socket' );
+ok( !$f->failure, 'Client connects to listening socket without failure' );
 
 ok( $irc->is_connected, '$irc->is_connected' );
 ok( !$irc->is_loggedin, 'not $irc->is_loggedin' );

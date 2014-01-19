@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2008-2013 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2008-2014 -- leonerd@leonerd.org.uk
 
 package Net::Async::IRC;
 
@@ -125,7 +125,7 @@ sub configure
 
 =cut
 
-=head2 $irc->connect( %args )
+=head2 $irc->connect( %args ) ==> $irc
 
 Connects to the IRC server. This method does not perform the complete IRC
 login sequence; for that see instead the C<login> method.
@@ -139,6 +139,18 @@ Hostname of the IRC server.
 =item service => STRING or NUMBER
 
 Optional. Port number or service name of the IRC server. Defaults to 6667.
+
+=back
+
+Any other arguments are passed into the underlying C<IO::Async::Loop>
+C<connect> method.
+
+=head2 $irc->connect( %args )
+
+The following additional arguments are used to provide continuations when not
+returning a Future.
+
+=over 8
 
 =item on_connected => CODE
 
@@ -155,9 +167,6 @@ taking place.
  $on_error->( $errormsg )
 
 =back
-
-Any other arguments are passed into the underlying C<IO::Async::Loop>
-C<connect> method.
 
 =cut
 
@@ -185,7 +194,7 @@ sub connect
          if( $args{on_resolve_error} ) {
             $args{on_resolve_error}->( $msg );
          }
-         else {
+         elsif( $on_error ) {
             $on_error->( "Cannot resolve - $msg" );
          }
       },
@@ -194,7 +203,7 @@ sub connect
          if( $args{on_connect_error} ) {
             $args{on_connect_error}->( @_ );
          }
-         else {
+         elsif( $on_error ) {
             $on_error->( "Cannot connect" );
          }
       },
