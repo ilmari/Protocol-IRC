@@ -90,6 +90,10 @@ If logged in, changing the C<nick> property is equivalent to calling
 C<change_nick>. Changing the other properties will not take effect until the
 next login.
 
+=item use_cap => BOOL
+
+Attempts to negotiate IRC v3.1 CAP at connect time.
+
 =back
 
 =cut
@@ -99,7 +103,7 @@ sub configure
    my $self = shift;
    my %args = @_;
 
-   for (qw( user realname )) {
+   for (qw( user realname use_cap )) {
       $self->{$_} = delete $args{$_} if exists $args{$_};
    }
 
@@ -269,10 +273,10 @@ sub login
       croak "Expected 'on_login' to be a CODE reference";
 
    return $self->{login_f} ||= $self->connect( %args )->then( sub {
+      $self->send_message( "CAP", undef, "LS" ) if $self->{use_cap};
+
       $self->send_message( "PASS", undef, $pass ) if defined $pass;
-
       $self->send_message( "USER", undef, $user, "0", "*", $realname );
-
       $self->send_message( "NICK", undef, $nick );
 
       my $f = $self->loop->new_future;
@@ -364,6 +368,71 @@ sub pull_list_and_invoke
 ############################
 # Message handling methods #
 ############################
+
+=head1 IRC v3.1 CAPABILITIES
+
+The following methods relate to IRC v3.1 capabilities negotiations.
+
+=cut
+
+sub on_message_CAP
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   my $verb = $message->arg(1);
+
+   my %hints = (
+      %$hints,
+      verb => $verb,
+      caps => { map { $_ => 1 } split m/ /, $message->arg(2) },
+   );
+
+   $self->invoke( "on_message_cap_$verb", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message_cap", $verb, $message, \%hints ) and $hints{handled} = 1;
+
+   return $hints{handled};
+}
+
+sub on_message_cap_LS
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   $self->{caps_supported} = $hints->{caps};
+
+   $self->send_message( "CAP", undef, "END" );
+}
+
+=head2 $caps = $irc->caps_supported
+
+Returns a HASH whose keys give the capabilities listed by the server as
+supported in its C<CAP LS> response.
+
+=cut
+
+sub caps_supported
+{
+   my $self = shift;
+   return $self->{caps_supported};
+}
+
+=head2 $supported = $irc->cap_supported
+
+Returns a boolean indicating if the server supports the named capability.
+
+=cut
+
+sub cap_supported
+{
+   my $self = shift;
+   my ( $cap ) = @_;
+   return !!$self->{caps_supported}{$cap};
+}
+
+=head1 MESSAGE HANDLING
+
+=cut
 
 sub on_message_NICK
 {
