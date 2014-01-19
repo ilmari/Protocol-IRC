@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2010-2013 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2010-2014 -- leonerd@leonerd.org.uk
 
 package Protocol::IRC::Client;
 
@@ -148,6 +148,40 @@ sub on_message_RPL_MYINFO
 The following messages are handled internally by C<Protocol::IRC::Client>.
 
 =cut
+
+=head2 CAP
+
+This message takes a sub-verb as its second argument, and a list of capability
+names as its third. On receipt of a C<CAP> message, the verb is extracted and
+set as the C<verb> hint, and the list capabilities set as the keys of a hash
+given as the C<caps> hint. These are then passed to an event called
+
+ $irc->on_message_cap_VERB( $message, \%hints )
+
+or
+
+ $irc->on_message_cap( 'VERB', $message, \%hints )
+
+=cut
+
+sub on_message_CAP
+{
+   my $self = shift;
+   my ( $message, $hints ) = @_;
+
+   my $verb = $message->arg(1);
+
+   my %hints = (
+      %$hints,
+      verb => $verb,
+      caps => { map { $_ => 1 } split m/ /, $message->arg(2) },
+   );
+
+   $self->invoke( "on_message_cap_$verb", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message_cap", $verb, $message, \%hints ) and $hints{handled} = 1;
+
+   return $hints{handled};
+}
 
 =head2 MODE (on channels) and 324 (RPL_CHANNELMODEIS)
 

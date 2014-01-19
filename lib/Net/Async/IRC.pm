@@ -376,25 +376,6 @@ The following methods relate to IRC v3.1 capabilities negotiations.
 
 =cut
 
-sub on_message_CAP
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-
-   my $verb = $message->arg(1);
-
-   my %hints = (
-      %$hints,
-      verb => $verb,
-      caps => { map { $_ => 1 } split m/ /, $message->arg(2) },
-   );
-
-   $self->invoke( "on_message_cap_$verb", $message, \%hints ) and $hints{handled} = 1;
-   $self->invoke( "on_message_cap", $verb, $message, \%hints ) and $hints{handled} = 1;
-
-   return $hints{handled};
-}
-
 sub on_message_cap_LS
 {
    my $self = shift;
