@@ -546,11 +546,21 @@ sub on_gate_done_whois
    my ( $message, $hints, $data ) = @_;
 
    my @whois;
+   my $channels;
 
    foreach my $h ( @$data ) {
       # Just delete all the standard hints from each one
       delete @{$h}{keys %$hints};
       ( $h->{whois} = lc delete $h->{command} ) =~ s/^rpl_whois//;
+
+      # Combine all the 'channels' results into one list
+      if( $h->{whois} eq "channels" ) {
+         if( $channels ) {
+            push @{$channels->{channels}}, @{$h->{channels}};
+            next;
+         }
+         $channels = $h;
+      }
 
       push @whois, $h;
    }

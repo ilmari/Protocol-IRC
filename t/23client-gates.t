@@ -114,6 +114,7 @@ sub write_irc
    write_irc( ':irc.example.com 311 MyNick UserNick ident host.com * :Real Name Here' . $CRLF );
    write_irc( ':irc.example.com 312 MyNick UserNick irc.example.com :IRC Server for Unit Tests' . $CRLF );
    write_irc( ':irc.example.com 319 MyNick UserNick :#channel #names #here' . $CRLF );
+   write_irc( ':irc.example.com 319 MyNick UserNick :#more #channels' . $CRLF );
    write_irc( ':irc.example.com 318 MyNick UserNick :End of WHOIS' . $CRLF );
 
    my ( $kind, $gate, $message, $hints, $data ) = @{ shift @gates };
@@ -128,7 +129,7 @@ sub write_irc
               [
                  { whois => "user", ident => "ident", host => "host.com", flags => "*", realname => "Real Name Here" },
                  { whois => "server", server => "irc.example.com", serverinfo => "IRC Server for Unit Tests" },
-                 { whois => "channels", channels => [ "#channel", "#names", "#here" ] },
+                 { whois => "channels", channels => [ "#channel", "#names", "#here", "#more", "#channels" ] },
               ],
               '$hints->{whois}' );
 }
