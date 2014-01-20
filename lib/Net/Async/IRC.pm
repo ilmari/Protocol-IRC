@@ -312,63 +312,26 @@ sub change_nick
    }
 }
 
-#################################
-# Methods for incremental lists #
-#################################
+############################
+# Message handling methods #
+############################
 
-sub build_list
+sub _invoke_synthetic
 {
    my $self = shift;
-   my ( $list, $target, $value ) = @_;
-
-   $target = "" if !defined $target;
-
-   push @{ $self->{buildlist}{$target}{$list} }, $value;
-}
-
-sub build_list_from_hints
-{
-   my $self = shift;
-   my ( $list, $hints, @keys ) = @_;
-
-   my %value;
-   @value{@keys} = @{$hints}{@keys};
-
-   $self->build_list( $list, $hints->{target_name_folded}, \%value );
-}
-
-sub pull_list
-{
-   my $self = shift;
-   my ( $list, $target ) = @_;
-
-   $target = "" if !defined $target;
-
-   return delete $self->{buildlist}{$target}{$list};
-}
-
-sub pull_list_and_invoke
-{
-   my $self = shift;
-   my ( $list, $message, $hints ) = @_;
-
-   my $values = $self->pull_list( $list, $hints->{target_name_folded} );
+   my ( $command, $message, $hints, @morehints ) = @_;
 
    my %hints = (
       %$hints,
       synthesized => 1,
-      $list => $values,
+      @morehints,
    );
 
-   $self->invoke( "on_message_$list", $message, \%hints ) and $hints{handled} = 1;
-   $self->invoke( "on_message", $list, $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message_$command", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message", $command, $message, \%hints ) and $hints{handled} = 1;
 
    return $hints{handled};
 }
-
-############################
-# Message handling methods #
-############################
 
 =head1 IRC v3.1 CAPABILITIES
 
@@ -533,16 +496,9 @@ sub on_gate_done_who
       +{ map { $_ => $b->{$_} } qw( user_ident user_host user_server user_nick user_nick_folded user_flags ) }
    } @$data;
 
-   my %hints = (
-      %$hints,
-      synthesized => 1,
+   $self->_invoke_synthetic( "who", $message, $hints,
       who => \@who,
    );
-
-   $self->invoke( "on_message_who", $message, \%hints ) and $hints{handled} = 1;
-   $self->invoke( "on_message", "who", $message, \%hints ) and $hints{handled} = 1;
-
-   return $hints{handled};
 }
 
 =head2 RPL_NAMEREPLY and RPL_ENDOFNAMES
@@ -584,16 +540,9 @@ sub on_gate_done_names
       $names{ $self->casefold_name( $nick ) } = { nick => $nick, flag => $flag };
    }
 
-   my %hints = (
-      %$hints,
-      synthesized => 1,
+   $self->_invoke_synthetic( "names", $message, $hints,
       names => \%names,
    );
-
-   $self->invoke( "on_message_names", $message, \%hints ) and $hints{handled} = 1;
-   $self->invoke( "on_message", "names", $message, \%hints ) and $hints{handled} = 1;
-
-   return $hints{handled};
 }
 
 =head2 RPL_BANLIST and RPL_ENDOFBANS
@@ -634,16 +583,9 @@ sub on_gate_done_bans
       +{ map { $_ => $b->{$_} } qw( mask by_nick by_nick_folded timestamp ) }
    } @$data;
 
-   my %hints = (
-      %$hints,
-      synthesized => 1,
+   $self->_invoke_synthetic( "bans", $message, $hints,
       bans => \@bans,
    );
-
-   $self->invoke( "on_message_bans", $message, \%hints ) and $hints{handled} = 1;
-   $self->invoke( "on_message", "bans", $message, \%hints ) and $hints{handled} = 1;
-
-   return $hints{handled};
 }
 
 =head2 RPL_MOTD, RPL_MOTDSTART and RPL_ENDOFMOTD
@@ -659,18 +601,10 @@ sub on_gate_done_motd
 {
    my $self = shift;
    my ( $message, $hints, $data ) = @_;
-   my $values = [ map { $_->{text} } @$data ];
 
-   my %hints = (
-      %$hints,
-      synthesized => 1,
-      motd => $values,
+   $self->_invoke_synthetic( "motd", $message, $hints,
+      motd => [ map { $_->{text} } @$data ],
    );
-
-   $self->invoke( "on_message_motd", $message, \%hints ) and $hints{handled} = 1;
-   $self->invoke( "on_message", "motd", $message, \%hints ) and $hints{handled} = 1;
-
-   return $hints{handled};
 }
 
 =head1 SEE ALSO
