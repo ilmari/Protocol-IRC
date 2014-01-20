@@ -109,6 +109,30 @@ sub write_irc
               '$hints->{who}' );
 }
 
+# whois
+{
+   write_irc( ':irc.example.com 311 MyNick UserNick ident host.com * :Real Name Here' . $CRLF );
+   write_irc( ':irc.example.com 312 MyNick UserNick irc.example.com :IRC Server for Unit Tests' . $CRLF );
+   write_irc( ':irc.example.com 319 MyNick UserNick :#channel #names #here' . $CRLF );
+   write_irc( ':irc.example.com 318 MyNick UserNick :End of WHOIS' . $CRLF );
+
+   my ( $kind, $gate, $message, $hints, $data ) = @{ shift @gates };
+
+   is( $kind, "done", 'Gate $kind is done' );
+   is( $gate, "whois", 'Gate $gate is whois' );
+   is( ref $data, "ARRAY", 'Gate $data is an ARRAY' );
+
+   ( my $command, $message, $hints ) = @{ shift @messages };
+
+   is_deeply( $hints->{whois},
+              [
+                 { command => "RPL_WHOISUSER", ident => "ident", host => "host.com", flags => "*", realname => "Real Name Here" },
+                 { command => "RPL_WHOISSERVER", server => "irc.example.com", serverinfo => "IRC Server for Unit Tests" },
+                 { command => "RPL_WHOISCHANNELS", channels => [ "#channel", "#names", "#here" ] },
+              ],
+              '$hints->{whois}' );
+}
+
 done_testing;
 
 package TestIRC;

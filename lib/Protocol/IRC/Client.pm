@@ -147,9 +147,12 @@ sub on_message_RPL_MYINFO
 
 If messages with a gating disposition are received, extra processing is
 applied. Messages whose gating effect is C<more> are simply collected up by
-pushing the hints hash to an array. When the effect of C<done> or C<fail> is
-eventually received, this collected array is passed as C<$data> to a handler
-in one of the following places:
+pushing the hints hash to an array. Added to this hash is the command name
+itself, so that in the case of multiple message types (for example C<WHOIS>
+replies) the individual messages can still be identified.
+
+When the effect of C<done> or C<fail> is eventually received, this collected
+array is passed as C<$data> to a handler in one of the following places:
 
 =over 4
 
@@ -181,8 +184,13 @@ sub on_message_gate
    my ( $effect, $gate, $message, $hints ) = @_;
    my $target = $hints->{target_name_folded} // "*";
 
-   push @{ $self->{Protocol_IRC_gate}{$target}{$gate} }, $hints and return 1
-      if $effect eq "more";
+   if( $effect eq "more" ) {
+      push @{ $self->{Protocol_IRC_gate}{$target}{$gate} }, {
+         %$hints,
+         command => $message->command_name,
+      };
+      return 1;
+   }
 
    my $data = delete $self->{Protocol_IRC_gate}{$target}{$gate};
    keys %{ $self->{Protocol_IRC_gate}{$target} } or delete $self->{Protocol_IRC_gate}{$target};
@@ -215,6 +223,7 @@ sub _invoke_synthetic
       synthesized => 1,
       @morehints,
    );
+   delete $hints{handled};
 
    $self->invoke( "on_message_$command", $message, \%hints ) and $hints{handled} = 1;
    $self->invoke( "on_message", $command, $message, \%hints ) and $hints{handled} = 1;
@@ -518,6 +527,26 @@ sub on_gate_done_motd
    $self->_invoke_synthetic( "motd", $message, $hints,
       motd => [ map { $_->{text} } @$data ],
    );
+}
+
+=head2 RPL_WHOIS* and RPL_ENDOFWHOIS
+
+These messages will be collected up into a synthesized event called C<whois>.
+
+=cut
+
+sub on_gate_done_whois
+{
+   my $self = shift;
+   my ( $message, $hints, $data ) = @_;
+
+   # Just delete all the standard hints from each one
+   my @whois = map {
+      delete @{$_}{keys %$hints};
+      $_
+   } @$data;
+
+   $self->_invoke_synthetic( "whois", $message, $hints, whois => \@whois );
 }
 
 =head1 AUTHOR

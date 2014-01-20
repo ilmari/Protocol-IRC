@@ -561,19 +561,19 @@ __DATA__
 306=RPL_NOWAWAY         | text
 
 307=RPL_USERIP          | target_name
-311=RPL_WHOISUSER       | target_name,ident,host,flags,realname
-312=RPL_WHOISSERVER     | target_name,server,serverinfo
-313=RPL_WHOISOPERATOR   | target_name,text
-315=RPL_ENDOFWHO        | target_name | +who
+311=RPL_WHOISUSER       | target_name,ident,host,flags,realname | -whois
+312=RPL_WHOISSERVER     | target_name,server,serverinfo         | -whois
+313=RPL_WHOISOPERATOR   | target_name,text                      | -whois
+315=RPL_ENDOFWHO        | target_name                           | +who
 314=RPL_WHOWASUSER      | target_name,ident,host,flags,realname
-317=RPL_WHOISIDLE       | target_name,idle_time
-318=RPL_ENDOFWHOIS      | target_name
-319=RPL_WHOISCHANNELS   | target_name,2@=channels
-320=RPL_WHOISSPECIAL    | target_name
+317=RPL_WHOISIDLE       | target_name,idle_time                 | -whois
+318=RPL_ENDOFWHOIS      | target_name                           | +whois
+319=RPL_WHOISCHANNELS   | target_name,2@=channels               | -whois
+320=RPL_WHOISSPECIAL    | target_name                           | -whois
 324=RPL_CHANNELMODEIS   | target_name,modechars,3..=modeargs
 328=RPL_CHANNEL_URL     | target_name,text
 329=RPL_CHANNELCREATED  | target_name,timestamp
-330=RPL_WHOISACCOUNT    | target_name,whois_nick,login_name
+330=RPL_WHOISACCOUNT    | target_name,whois_nick,login_name     | -whois
 
 331=RPL_NOTOPIC         | target_name
 332=RPL_TOPIC           | target_name,text
@@ -597,7 +597,7 @@ __DATA__
 375=RPL_MOTDSTART       | text | -motd
 376=RPL_ENDOFMOTD       |      | +motd
 
-378=RPL_WHOISHOST       | target_name,text
+378=RPL_WHOISHOST       | target_name,text | -whois
 
 401=ERR_NOSUCHNICK              | target_name,text
 402=ERR_NOSUCHSERVER            | server_name,text
