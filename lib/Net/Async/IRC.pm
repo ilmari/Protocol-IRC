@@ -435,6 +435,9 @@ sub on_message_RPL_WELCOME
    my $self = shift;
    my ( $message ) = @_;
 
+   # set our nick to be what the server logged us in as
+   $self->_set_nick( $message->{args}[0] );
+
    $self->{on_login}->( $self ) if defined $self->{on_login};
    undef $self->{on_login};
 
