@@ -136,4 +136,28 @@ my %CHANNEL_HINTS = (
                         ] }, '$hints for bans' );
 }
 
+# who list
+{
+   undef @messages;
+
+   $S2->syswrite( ':irc.example.com 352 MyNick #channel ident host.com irc.example.com OtherNick H@ :2 hops Real Name' . $CRLF .
+                  ':irc.example.com 315 MyNick #channel :End of WHO' . $CRLF );
+
+   wait_for { @messages };
+
+   my ( $command, $msg, $hints ) = @{ shift @messages };
+
+   is( $command, "who", '$command for who' );
+
+   is_deeply( $hints, { %CHANNEL_HINTS,
+                        who => [
+                           { user_nick        => "OtherNick",
+                             user_nick_folded => "othernick",
+                             user_ident       => "ident",
+                             user_host        => "host.com",
+                             user_server      => "irc.example.com",
+                             user_flags       => 'H@', }
+                        ] }, '$hints for who' );
+}
+
 done_testing;

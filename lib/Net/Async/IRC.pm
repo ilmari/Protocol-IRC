@@ -523,21 +523,26 @@ containing:
 
 =cut
 
-sub on_message_RPL_ENDOFWHO
+sub on_gate_done_who
 {
    my $self = shift;
-   my ( $message, $hints ) = @_;
-   $self->pull_list_and_invoke( "who", $message, $hints );
-}
+   my ( $message, $hints, $data ) = @_;
 
-sub on_message_RPL_WHOREPLY
-{
-   my $self = shift;
-   my ( $message, $hints ) = @_;
-   $self->build_list_from_hints( "who", $hints,
-      qw( user_ident user_host user_server user_nick user_nick_folded user_flags )
+   my @who = map {
+      my $b = $_;
+      +{ map { $_ => $b->{$_} } qw( user_ident user_host user_server user_nick user_nick_folded user_flags ) }
+   } @$data;
+
+   my %hints = (
+      %$hints,
+      synthesized => 1,
+      who => \@who,
    );
-   return 1;
+
+   $self->invoke( "on_message_who", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message", "who", $message, \%hints ) and $hints{handled} = 1;
+
+   return $hints{handled};
 }
 
 =head2 RPL_NAMEREPLY and RPL_ENDOFNAMES

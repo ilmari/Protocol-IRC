@@ -564,7 +564,7 @@ __DATA__
 311=RPL_WHOISUSER       | target_name,ident,host,flags,realname
 312=RPL_WHOISSERVER     | target_name,server,serverinfo
 313=RPL_WHOISOPERATOR   | target_name,text
-315=RPL_ENDOFWHO        | target_name
+315=RPL_ENDOFWHO        | target_name | +who
 314=RPL_WHOWASUSER      | target_name,ident,host,flags,realname
 317=RPL_WHOISIDLE       | target_name,idle_time
 318=RPL_ENDOFWHOIS      | target_name
@@ -585,7 +585,7 @@ __DATA__
 348=RPL_EXCEPTLIST      | target_name,except_mask
 349=RPL_ENDOFEXCEPTLIST | target_name
 
-352=RPL_WHOREPLY        | target_name,user_ident,user_host,user_server,user_nick,user_flags,text
+352=RPL_WHOREPLY        | target_name,user_ident,user_host,user_server,user_nick,user_flags,text | -who
 353=RPL_NAMEREPLY       | 2=target_name,3@=names | -names
 
 366=RPL_ENDOFNAMES      | target_name | +names
