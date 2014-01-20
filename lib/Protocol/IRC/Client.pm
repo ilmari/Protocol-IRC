@@ -533,6 +533,11 @@ sub on_gate_done_motd
 
 These messages will be collected up into a synthesized event called C<whois>.
 
+Each C<RPL_WHOIS*> reply will be stripped of the standard hints hash keys,
+leaving whatever remains. Added to this will be a key called C<whois>, whose
+value will be the command name, minus the leading C<RPL_WHOIS>, and converted
+to lowercase.
+
 =cut
 
 sub on_gate_done_whois
@@ -540,11 +545,15 @@ sub on_gate_done_whois
    my $self = shift;
    my ( $message, $hints, $data ) = @_;
 
-   # Just delete all the standard hints from each one
-   my @whois = map {
-      delete @{$_}{keys %$hints};
-      $_
-   } @$data;
+   my @whois;
+
+   foreach my $h ( @$data ) {
+      # Just delete all the standard hints from each one
+      delete @{$h}{keys %$hints};
+      ( $h->{whois} = lc delete $h->{command} ) =~ s/^rpl_whois//;
+
+      push @whois, $h;
+   }
 
    $self->_invoke_synthetic( "whois", $message, $hints, whois => \@whois );
 }

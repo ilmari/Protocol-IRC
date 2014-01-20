@@ -126,9 +126,9 @@ sub write_irc
 
    is_deeply( $hints->{whois},
               [
-                 { command => "RPL_WHOISUSER", ident => "ident", host => "host.com", flags => "*", realname => "Real Name Here" },
-                 { command => "RPL_WHOISSERVER", server => "irc.example.com", serverinfo => "IRC Server for Unit Tests" },
-                 { command => "RPL_WHOISCHANNELS", channels => [ "#channel", "#names", "#here" ] },
+                 { whois => "user", ident => "ident", host => "host.com", flags => "*", realname => "Real Name Here" },
+                 { whois => "server", server => "irc.example.com", serverinfo => "IRC Server for Unit Tests" },
+                 { whois => "channels", channels => [ "#channel", "#names", "#here" ] },
               ],
               '$hints->{whois}' );
 }
