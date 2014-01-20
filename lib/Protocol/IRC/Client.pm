@@ -10,7 +10,7 @@ use warnings;
 use 5.010; # //
 use base qw( Protocol::IRC );
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use Carp;
 
