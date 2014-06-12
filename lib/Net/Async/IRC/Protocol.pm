@@ -47,7 +47,12 @@ references in parameters:
 
 =head2 $handled = on_message_MESSAGE
 
-Invoked on receipt of an IRC message. See C<MESSAGE HANDLING> below.
+Invoked on receipt of a valid IRC message. See C<MESSAGE HANDLING> below.
+
+=head2 on_irc_error $err
+
+Invoked on receipt of an invalid IRC message if parsing fails. C<$err> is the
+error message text.
 
 =head2 on_ping_timeout
 
@@ -57,7 +62,7 @@ timeout.
 =head2 on_pong_reply $lag
 
 Invoked when the peer successfully sends a C<PONG> reply response to a C<PING>
-message. Where C<$lag> is the response time in (fractional) seconds.
+message. C<$lag> is the response time in (fractional) seconds.
 
 =cut
 
@@ -70,6 +75,8 @@ The following named parameters may be passed to C<new> or C<configure>:
 =item on_message => CODE
 
 =item on_message_MESSAGE => CODE
+
+=item on_irc_error => CODE
 
 =item on_ping_timeout => CODE
 
@@ -182,7 +189,7 @@ sub configure
 
    $self->{$_} = delete $args{$_} for grep m/^on_message/, keys %args;
 
-   for (qw( on_ping_timeout on_pong_reply )) {
+   for (qw( on_ping_timeout on_pong_reply on_irc_error )) {
       $self->{$_} = delete $args{$_} if exists $args{$_};
    }
 
@@ -266,8 +273,17 @@ sub on_read
 
    $pingtimer->is_running ? $pingtimer->reset : $pingtimer->start;
 
-   $self->Protocol::IRC::on_read( $$buffref );
-   return 0;
+   eval {
+      $self->Protocol::IRC::on_read( $$buffref );
+      1;
+   } and return 0;
+
+   my $e = "$@"; chomp $e;
+
+   $self->maybe_invoke_event( on_irc_error => $e )
+      and return 0;
+
+   die "$e\n";
 }
 
 =head2 $nick = $irc->nick
