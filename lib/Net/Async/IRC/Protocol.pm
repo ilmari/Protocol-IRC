@@ -38,6 +38,64 @@ parameters, and methods documented below are relevant there.
 
 =cut
 
+=head1 EVENTS
+
+The following events are invoked, either using subclass methods or C<CODE>
+references in parameters:
+
+=head2 $handled = on_message
+
+=head2 $handled = on_message_MESSAGE
+
+Invoked on receipt of an IRC message. See C<MESSAGE HANDLING> below.
+
+=head2 on_ping_timeout
+
+Invoked if the peer fails to respond to a C<PING> message within the given
+timeout.
+
+=head2 on_pong_reply $lag
+
+Invoked when the peer successfully sends a C<PONG> reply response to a C<PING>
+message. Where C<$lag> is the response time in (fractional) seconds.
+
+=cut
+
+=head1 PARAMETERS
+
+The following named parameters may be passed to C<new> or C<configure>:
+
+=over 8
+
+=item on_message => CODE
+
+=item on_message_MESSAGE => CODE
+
+=item on_ping_timeout => CODE
+
+=item on_pong_reply => CODE
+
+C<CODE> references for event handlers.
+
+=item pingtime => NUM
+
+Amount of quiet time, in seconds, after a message is received from the peer,
+until a C<PING> will be sent to check it is still alive.
+
+=item pongtime => NUM
+
+Timeout, in seconds, after sending a C<PING> message, to wait for a C<PONG>
+response.
+
+=item encoding => STRING
+
+If supplied, sets an encoding to use to encode outgoing messages and decode
+incoming messages.
+
+=back
+
+=cut
+
 =head1 CONSTRUCTOR
 
 =cut
@@ -116,58 +174,6 @@ sub encoder
    my $self = shift;
    return $self->{encoder};
 }
-
-=head1 PARAMETERS
-
-The following named parameters may be passed to C<new> or C<configure>:
-
-=over 8
-
-=item on_message => CODE
-
-A CODE reference to the generic message handler; see C<MESSAGE HANDLING>
-below.
-
-=item on_message_* => CODE
-
-Any parameter whose name starts with C<on_message_> can be installed as a
-handler for a specific message, in preference to the generic handler. See
-C<MESSAGE HANDLING>.
-
-=item pingtime => NUM
-
-Amount of quiet time, in seconds, after a message is received from the peer,
-until a C<PING> will be sent to check it is still alive.
-
-=item pongtime => NUM
-
-Timeout, in seconds, after sending a C<PING> message, to wait for a C<PONG>
-response.
-
-=item on_ping_timeout => CODE
-
-A CODE reference to invoke if the peer fails to respond to a C<PING> message
-within the given timeout.
-
- $on_ping_timeout->( $irc )
-
-=item on_pong_reply => CODE
-
-A CODE reference to invoke when the peer successfully sends a C<PONG> in
-response of a C<PING> message.
-
- $on_pong_reply->( $irc, $lag )
-
-Where C<$lag> is the response time in (fractional) seconds.
-
-=item encoding => STRING
-
-If supplied, sets an encoding to use to encode outgoing messages and decode
-incoming messages.
-
-=back
-
-=cut
 
 sub configure
 {
