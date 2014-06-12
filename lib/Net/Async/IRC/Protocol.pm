@@ -129,14 +129,14 @@ sub new
       %args,
 
       on_closed => sub {
-         my ( $self ) = @_;
+         my $self = shift;
 
          my $loop = $self->get_loop;
 
          $self->{pingtimer}->stop;
          $self->{pongtimer}->stop;
 
-         $on_closed->() if $on_closed;
+         $on_closed->( $self ) if $on_closed;
 
          undef $self->{connect_f};
          undef $self->{login_f};

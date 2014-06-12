@@ -62,6 +62,29 @@ future.
 
 =cut
 
+sub new
+{
+   my $class = shift;
+   my %args = @_;
+
+   my $on_closed = delete $args{on_closed};
+
+   return $class->SUPER::new(
+      %args,
+
+      on_closed => sub {
+         my $self = shift;
+
+         if( $self->{on_login_f} ) {
+            $_->fail( "Closed" ) for @{ $self->{on_login_f} };
+            undef $self->{on_login_f};
+         }
+
+         $on_closed->( $self ) if $on_closed;
+      },
+   );
+}
+
 sub _init
 {
    my $self = shift;
@@ -281,10 +304,8 @@ sub login
 
       my $f = $self->loop->new_future;
 
-      $self->{on_login} = sub {
-         $f->done;
-         goto &$on_login if $on_login;
-      };
+      push @{ $self->{on_login_f} }, $f;
+      $f->on_done( $on_login ) if $on_login;
 
       return $f;
    })->on_fail( sub { undef $self->{login_f} } );
@@ -437,8 +458,14 @@ sub on_message_RPL_WELCOME
    # set our nick to be what the server logged us in as
    $self->_set_nick( $message->{args}[0] );
 
-   $self->{on_login}->( $self ) if defined $self->{on_login};
-   undef $self->{on_login};
+   if( $self->{on_login_f} and @{ $self->{on_login_f} } ) {
+      my @futures = @{ $self->{on_login_f} };
+      undef $self->{on_login_f};
+
+      foreach my $f ( @futures ) {
+         $f->done( $self );
+      }
+   }
 
    # Don't eat it
    return 0;
