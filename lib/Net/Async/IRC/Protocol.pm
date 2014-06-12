@@ -52,7 +52,9 @@ Invoked on receipt of a valid IRC message. See C<MESSAGE HANDLING> below.
 =head2 on_irc_error $err
 
 Invoked on receipt of an invalid IRC message if parsing fails. C<$err> is the
-error message text.
+error message text. If left unhandled, any parse error will result in the
+connection being immediataely closed, followed by the exception being
+re-thrown.
 
 =head2 on_ping_timeout
 
@@ -283,6 +285,7 @@ sub on_read
    $self->maybe_invoke_event( on_irc_error => $e )
       and return 0;
 
+   $self->close_now;
    die "$e\n";
 }
 
