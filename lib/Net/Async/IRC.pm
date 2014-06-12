@@ -8,7 +8,7 @@ package Net::Async::IRC;
 use strict;
 use warnings;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 # We need to use C3 MRO to make the ->isupport etc.. methods work properly
 use mro 'c3';
