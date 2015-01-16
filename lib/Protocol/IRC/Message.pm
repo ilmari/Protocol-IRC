@@ -508,6 +508,7 @@ Paul Evans <leonerd@leonerd.org.uk>
 
 =cut
 
+local $_;
 while( <DATA> ) {
    chomp;
    my ( $numname, $args, $gating ) = split m/\s*\|\s*/, $_ or next;
