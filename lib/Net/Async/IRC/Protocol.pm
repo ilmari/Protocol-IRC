@@ -213,6 +213,20 @@ sub configure
    $self->SUPER::configure( %args );
 }
 
+sub incoming_message
+{
+   my $self = shift;
+   my ( $message ) = @_;
+
+   my @shortargs = ( $message->arg( 0 ) );
+   push @shortargs, $message->arg( 1 ) if $message->command =~ m/^\d+$/;
+   push @shortargs, "..." if $message->args > 1;
+
+   $self->debug_printf( "COMMAND ${\ $message->command } @shortargs" );
+
+   return $self->SUPER::incoming_message( @_ );
+}
+
 =head1 METHODS
 
 =cut
