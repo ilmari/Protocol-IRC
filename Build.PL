@@ -11,7 +11,7 @@ my $build = Module::Build->new(
       'Time::HiRes' => 0,
       'perl' => '5.010', # //, mro c3
    },
-   build_requires => {
+   test_requires => {
       'IO::Async::OS' => 0,
       'IO::Async::Test' => 0.14,
       'Test::Fatal' => 0,
