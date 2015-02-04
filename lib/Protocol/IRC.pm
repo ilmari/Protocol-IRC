@@ -160,10 +160,16 @@ True if the target name is a user and refers to this connection.
 
 =back
 
-Finally, any key whose name ends in C<_nick> or C<_name> will have a
-corresponding key added with C<_folded> suffixed on its name, containing the
-value casefolded using C<casefold_name>. This is for the convenience of string
-comparisons, hash keys, etc..
+Any key whose name ends in C<_nick> or C<_name> will have a corresponding key
+added with C<_folded> suffixed on its name, containing the value casefolded
+using C<casefold_name>. This is for the convenience of string comparisons,
+hash keys, etc..
+
+Any of these keys that are not the C<prefix_name> will additionally have a
+corresponding key with C<_is_me> replacing the C<_nick> or C<_name>,
+containing the boolean result of calling the C<is_nick_me> method on that
+name. This makes it simpler to detect commands or results affecting the user
+the connection represents.
 
 =cut
 
@@ -226,7 +232,6 @@ sub incoming_message
       prefix_host  => $prefix_host,
       # Most of the time this will be "nick", except for special messages from the server
       prefix_name  => defined $prefix_nick ? $prefix_nick : $prefix_host,
-      prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
    };
 
    if( my $named_args = $message->named_args ) {
@@ -238,8 +243,6 @@ sub incoming_message
    }
 
    if( defined( my $target_name = $hints->{target_name} ) ) {
-      $hints->{target_is_me} = $self->is_nick_me( $target_name );
-
       my $target_type = $self->classify_name( $target_name );
       $hints->{target_type} = $target_type;
    }
@@ -248,7 +251,12 @@ sub incoming_message
    $self->$prepare_method( $message, $hints ) if $self->can( $prepare_method );
 
    foreach my $k ( grep { m/_nick$/ or m/_name$/ } keys %$hints ) {
-      $hints->{"${k}_folded"} = $self->casefold_name( $hints->{$k} );
+      $hints->{"${k}_folded"} = $self->casefold_name( my $name = $hints->{$k} );
+      defined $name or next;
+      $k eq "prefix_name" and next;
+
+      ( my $knew = $k ) =~ s/_name$|_nick$/_is_me/;
+      $hints->{$knew} = $self->is_nick_me( $name );
    }
 
    if( my $disp = $message->gate_disposition ) {

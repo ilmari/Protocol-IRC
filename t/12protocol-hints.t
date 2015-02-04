@@ -42,7 +42,6 @@ sub write_irc
                 prefix_host        => "irc.example.com",
                 prefix_name        => "irc.example.com",
                 prefix_name_folded => "irc.example.com",
-                prefix_is_me       => '',
                 text               => "Welcome to IRC MyNick!me\@your.host",
                 handled            => 1 },
               '$hints for 001' );
@@ -156,10 +155,44 @@ sub write_irc
                 prefix_is_me       => '',
                 old_nick           => "Someone",
                 old_nick_folded    => "someone",
+                old_is_me          => '',
                 new_nick           => "NewName",
                 new_nick_folded    => "newname",
+                new_is_me          => '',
                 handled            => 1 },
               '$hints for NICK' );
+}
+
+# KICK
+{
+   write_irc( ':Someone!theiruser@their.host KICK #a-channel MyNick :Go away' . $CRLF );
+
+   my ( $command, $msg, $hints ) = @{ shift @messages };
+
+   is( $msg->command, "KICK",                         '$msg->command for KICK' );
+   is( $msg->prefix,  'Someone!theiruser@their.host', '$msg->prefix for KICK' );
+
+   is_deeply( $hints,
+              { prefix_nick        => "Someone",
+                prefix_nick_folded => "someone",
+                prefix_user        => "theiruser",
+                prefix_host        => "their.host",
+                prefix_name        => "Someone",
+                prefix_name_folded => "someone",
+                prefix_is_me       => '',
+                target_name        => "#a-channel",
+                target_name_folded => "#a-channel",
+                target_is_me       => '',
+                target_type        => "channel",
+                kicker_nick        => "Someone",
+                kicker_nick_folded => "someone",
+                kicker_is_me       => '',
+                kicked_nick        => "MyNick",
+                kicked_nick_folded => "mynick",
+                kicked_is_me       => 1,
+                text               => "Go away",
+                handled            => 1 },
+             '$hints for KICK' );
 }
 
 done_testing;
