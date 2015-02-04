@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2010-2014 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2010-2015 -- leonerd@leonerd.org.uk
 
 package Protocol::IRC;
 
@@ -193,64 +193,82 @@ sub on_read
       # Ignore blank lines
       next if !length $line;
 
-      my $message = Protocol::IRC::Message->new_from_line( $line );
+      $self->incoming_message( Protocol::IRC::Message->new_from_line( $line ) );
+   }
+}
 
-      my $command = $message->command_name;
+=head2 $irc->incoming_message( $message )
 
-      my ( $prefix_nick, $prefix_user, $prefix_host ) = $message->prefix_split;
+Invoked by the C<on_read> method for every incoming IRC message. This method
+implements the actual dispatch into various handler methods as described in
+the L</MESSAGE HANDLING> section above.
 
-      my $hints = {
-         handled => 0,
+This method is exposed so that subclasses can override it, primarily to wrap
+extra logic before or after the main dispatch (e.g. for logging or other
+processing).
 
-         prefix_nick  => $prefix_nick,
-         prefix_user  => $prefix_user,
-         prefix_host  => $prefix_host,
-         # Most of the time this will be "nick", except for special messages from the server
-         prefix_name  => defined $prefix_nick ? $prefix_nick : $prefix_host,
-         prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
-      };
+=cut
 
-      if( my $named_args = $message->named_args ) {
-         $hints->{$_} = $named_args->{$_} for keys %$named_args;
-      }
+sub incoming_message
+{
+   my $self = shift;
+   my ( $message ) = @_;
 
-      if( defined $hints->{text} and my $encoder = $self->encoder ) {
-         $hints->{text} = $encoder->decode( $hints->{text} );
-      }
+   my $command = $message->command_name;
 
-      if( defined( my $target_name = $hints->{target_name} ) ) {
-         $hints->{target_is_me} = $self->is_nick_me( $target_name );
+   my ( $prefix_nick, $prefix_user, $prefix_host ) = $message->prefix_split;
 
-         my $target_type = $self->classify_name( $target_name );
-         $hints->{target_type} = $target_type;
-      }
+   my $hints = {
+      handled => 0,
 
-      my $prepare_method = "prepare_hints_$command";
-      $self->$prepare_method( $message, $hints ) if $self->can( $prepare_method );
+      prefix_nick  => $prefix_nick,
+      prefix_user  => $prefix_user,
+      prefix_host  => $prefix_host,
+      # Most of the time this will be "nick", except for special messages from the server
+      prefix_name  => defined $prefix_nick ? $prefix_nick : $prefix_host,
+      prefix_is_me => defined $prefix_nick && $self->is_nick_me( $prefix_nick ),
+   };
 
-      foreach my $k ( grep { m/_nick$/ or m/_name$/ } keys %$hints ) {
-         $hints->{"${k}_folded"} = $self->casefold_name( $hints->{$k} );
-      }
+   if( my $named_args = $message->named_args ) {
+      $hints->{$_} = $named_args->{$_} for keys %$named_args;
+   }
 
-      if( my $disp = $message->gate_disposition ) {
-         my ( $type, $gate ) = $disp =~ m/^([-+!])(.*)$/;
-         my $effect = ( $type eq "-" ? "more" :
-                        $type eq "+" ? "done" :
-                        $type eq "!" ? "fail" : die "TODO" );
+   if( defined $hints->{text} and my $encoder = $self->encoder ) {
+      $hints->{text} = $encoder->decode( $hints->{text} );
+   }
 
-         $self->invoke( "on_message_gate_${effect}_$gate", $message, $hints ) and $hints->{handled} = 1;
-         $self->invoke( "on_message_gate_$effect", $gate, $message, $hints ) and $hints->{handled} = 1;
-         $self->invoke( "on_message_gate", $effect, $gate, $message, $hints ) and $hints->{handled} = 1;
-      }
+   if( defined( my $target_name = $hints->{target_name} ) ) {
+      $hints->{target_is_me} = $self->is_nick_me( $target_name );
 
-      $self->invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
-      $self->invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
+      my $target_type = $self->classify_name( $target_name );
+      $hints->{target_type} = $target_type;
+   }
 
-      if( !$hints->{handled} and $message->command ne $command ) { # numerics
-         my $numeric = $message->command;
-         $self->invoke( "on_message_$numeric", $message, $hints ) and $hints->{handled} = 1;
-         $self->invoke( "on_message", $numeric, $message, $hints ) and $hints->{handled} = 1;
-      }
+   my $prepare_method = "prepare_hints_$command";
+   $self->$prepare_method( $message, $hints ) if $self->can( $prepare_method );
+
+   foreach my $k ( grep { m/_nick$/ or m/_name$/ } keys %$hints ) {
+      $hints->{"${k}_folded"} = $self->casefold_name( $hints->{$k} );
+   }
+
+   if( my $disp = $message->gate_disposition ) {
+      my ( $type, $gate ) = $disp =~ m/^([-+!])(.*)$/;
+      my $effect = ( $type eq "-" ? "more" :
+                     $type eq "+" ? "done" :
+                     $type eq "!" ? "fail" : die "TODO" );
+
+      $self->invoke( "on_message_gate_${effect}_$gate", $message, $hints ) and $hints->{handled} = 1;
+      $self->invoke( "on_message_gate_$effect", $gate, $message, $hints ) and $hints->{handled} = 1;
+      $self->invoke( "on_message_gate", $effect, $gate, $message, $hints ) and $hints->{handled} = 1;
+   }
+
+   $self->invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
+   $self->invoke( "on_message", $command, $message, $hints ) and $hints->{handled} = 1;
+
+   if( !$hints->{handled} and $message->command ne $command ) { # numerics
+      my $numeric = $message->command;
+      $self->invoke( "on_message_$numeric", $message, $hints ) and $hints->{handled} = 1;
+      $self->invoke( "on_message", $numeric, $message, $hints ) and $hints->{handled} = 1;
    }
 }
 
