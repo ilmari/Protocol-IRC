@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2010-2014 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2010-2015 -- leonerd@leonerd.org.uk
 
 package Net::Async::IRC::Protocol;
 
@@ -211,26 +211,6 @@ sub configure
    }
 
    $self->SUPER::configure( %args );
-}
-
-sub setup_transport
-{
-   my $self = shift;
-   $self->SUPER::setup_transport( @_ );
-
-   $self->{connect_f} = Future->new->done( $self->transport->read_handle );
-   $self->{pingtimer}->start if $self->{pingtimer} and $self->get_loop;
-}
-
-sub teardown_transport
-{
-   my $self = shift;
-
-   undef $self->{connect_f};
-   undef $self->{login_f};
-   $self->{pingtimer}->stop if $self->{pingtimer} and $self->get_loop;
-
-   $self->SUPER::teardown_transport( @_ );
 }
 
 =head1 METHODS
