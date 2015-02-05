@@ -147,12 +147,16 @@ sub configure
 
 =head1 METHODS
 
+The following methods documented with a trailing call to C<< ->get >> return
+L<Future> instances.
+
 =cut
 
-=head2 $irc->connect( %args ) ==> $irc
+=head2 $irc = $irc->connect( %args )->get
 
 Connects to the IRC server. This method does not perform the complete IRC
-login sequence; for that see instead the C<login> method.
+login sequence; for that see instead the C<login> method. The returned
+L<Future> will yield the C<$irc> instance itself, to make chaining easier.
 
 =over 8
 
@@ -234,7 +238,7 @@ sub connect
    )->on_fail( sub { undef $self->{connect_f} } );
 }
 
-=head2 $irc->login( %args ) ==> $irc
+=head2 $irc = $irc->login( %args )->get
 
 Logs in to the IRC network, connecting first using the C<connect> method if
 required. Takes the following named arguments:
