@@ -19,4 +19,4 @@
  )->get;
 
  $irc->send_message( "PRIVMSG", undef, "YourName", "Hello world!" );
- $loop->loop_forever;
+ $loop->run;

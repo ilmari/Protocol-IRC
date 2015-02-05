@@ -48,7 +48,7 @@ C<Net::Async::IRC> - use IRC with C<IO::Async>
 
  $irc->send_message( "PRIVMSG", undef, "YourName", "Hello world!" );
 
- $loop->loop_forever;
+ $loop->run;
 
 =head1 DESCRIPTION
 
