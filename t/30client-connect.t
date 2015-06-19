@@ -6,8 +6,7 @@ use warnings;
 use Test::More;
 use IO::Async::Test;
 use IO::Async::Loop;
-
-use IO::Socket::INET;
+use IO::Async::Listener;
 
 use Net::Async::IRC;
 
@@ -16,11 +15,17 @@ my $CRLF = "\x0d\x0a"; # because \r\n isn't portable
 my $loop = IO::Async::Loop->new();
 testing_loop( $loop );
 
-# Try connect()ing to a socket we've just created
-my $listensock = IO::Socket::INET->new( LocalAddr => 'localhost', Listen => 1 ) or
-   die "Cannot create listensock - $!";
+my $client;
+my $listener = IO::Async::Listener->new(
+   on_stream => sub {
+      ( undef, $client ) = @_;
+   },
+);
+$loop->add( $listener );
 
-my $addr = $listensock->sockname;
+$listener->listen(
+   addr => { family => "inet" },
+)->get;
 
 my @errors;
 
@@ -42,27 +47,30 @@ $loop->add( $irc );
 
 ok( !$irc->is_connected, 'not $irc->is_connected' );
 
-my $connect_f = $irc->connect(
-   addr => [ AF_INET, SOCK_STREAM, 0, $addr ],
-);
-
-wait_for { $connect_f->is_ready };
-
-ok( !$connect_f->failure, 'Client connects to listening socket without failure' );
+$irc->connect(
+   addr => {
+      family => "inet",
+      ip     => $listener->read_handle->sockhost,
+      port   => $listener->read_handle->sockport,
+   },
+)->get;
 
 ok( $irc->is_connected, '$irc->is_connected' );
 ok( !$irc->is_loggedin, 'not $irc->is_loggedin' );
 
-my $newclient = $listensock->accept;
+wait_for { $client };
+$client->configure( on_read => sub { 0 } );  # using read futures
+$loop->add( $client );
 
 # Now see if we can send a message
 $irc->send_message( "HELLO", undef, "world" );
 
-my $serverstream = "";
+my $read_f;
 
-wait_for_stream { $serverstream =~ m/$CRLF/ } $newclient => $serverstream;
+$read_f = $client->read_until( $CRLF );
+wait_for { $read_f->is_ready };
 
-is( $serverstream, "HELLO world$CRLF", 'Server stream after initial client message' );
+is( scalar $read_f->get, "HELLO world$CRLF", 'Server stream after initial client message' );
 
 my $logged_in = 0;
 
@@ -72,14 +80,15 @@ my $login_f = $irc->login(
    on_login => sub { $logged_in = 1 },
 );
 
-$serverstream = "";
+$read_f = $client->read_until( qr/$CRLF.*$CRLF/ );
+wait_for { $read_f->is_ready };
 
-wait_for_stream { $serverstream =~ m/$CRLF.*$CRLF/ } $newclient => $serverstream;
+is( scalar $read_f->get,
+   "USER defaultuser 0 * :Default Real name$CRLF" .
+      "NICK MyNick$CRLF",
+   'Server stream after login' );
 
-is( $serverstream, "USER defaultuser 0 * :Default Real name$CRLF" . 
-                   "NICK MyNick$CRLF", 'Server stream after login' );
-
-$newclient->syswrite( ":irc.example.com 001 MyNick :Welcome to IRC MyNick!defaultuser\@your.host.here$CRLF" );
+$client->write( ":irc.example.com 001 MyNick :Welcome to IRC MyNick!defaultuser\@your.host.here$CRLF" );
 
 wait_for { $login_f->is_ready };
 
@@ -89,7 +98,7 @@ ok( $logged_in, 'Client receives logged in event' );
 ok( $irc->is_connected, '$irc->is_connected' );
 ok( $irc->is_loggedin, '$irc->is_loggedin' );
 
-$newclient->syswrite( ":something invalid-here$CRLF" );
+$client->write( ":something invalid-here$CRLF" );
 
 wait_for { scalar @errors };
 
