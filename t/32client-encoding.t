@@ -18,8 +18,11 @@ my $CRLF = "\x0d\x0a"; # because \r\n isn't portable
 my $loop = IO::Async::Loop->new();
 testing_loop( $loop );
 
-# plaintext
-{
+SKIP: foreach my $SSL ( 0, 1 ) {
+   if( $SSL ) {
+      eval { require IO::Async::SSL } or skip "No IO::Async::SSL", 1;
+   }
+
    my $client;
    my $listener = IO::Async::Listener->new(
       on_stream => sub {
@@ -30,6 +33,11 @@ testing_loop( $loop );
 
    $listener->listen(
       addr => { family => "inet" },
+      ( $SSL ?
+         ( extensions => [ 'SSL' ],
+           SSL_key_file  => "t/privkey.pem",
+           SSL_cert_file => "t/server.pem", ) :
+         () ),
    )->get;
 
    my $irc = Net::Async::IRC->new(
@@ -50,6 +58,10 @@ testing_loop( $loop );
          ip     => $listener->read_handle->sockhost,
          port   => $listener->read_handle->sockport,
       },
+      ( $SSL ?
+         ( extensions => [ 'SSL' ],
+           SSL_verify_mode => 0 ) :
+         () ),
    )->get;
 
    wait_for { $client };
@@ -62,7 +74,7 @@ testing_loop( $loop );
    wait_for { $read_f->is_ready };
 
    is( scalar $read_f->get, encode_utf8( "PRIVMSG target :Ĉu vi ĉi tio vidas?$CRLF" ),
-      'Stream is encoded' );
+      'Stream is encoded over ' . ( $SSL ? "SSL" : "plaintext" ) );
 
    $loop->remove( $irc );
    $loop->remove( $client );
