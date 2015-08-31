@@ -55,10 +55,8 @@ C<Net::Async::IRC> - use IRC with C<IO::Async>
 This object class implements an asynchronous IRC client, for use in programs
 based on L<IO::Async>.
 
-This documentation is very much still in a state of TODO; it is being released
-now in the hope it is currently somewhat useful, with the intention of putting
-more work into both the code and its documentation at some near point in the
-future.
+Most of the actual IRC message handling behaviour is implemented by the base
+class, L<Net::Async::IRC::Protocol>.
 
 =cut
 
@@ -436,10 +434,6 @@ sub cap_enabled
    my ( $cap ) = @_;
    return !!$self->{caps_enabled}{$cap};
 }
-
-=head1 MESSAGE HANDLING
-
-=cut
 
 sub on_message_NICK
 {
