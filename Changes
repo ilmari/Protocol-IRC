@@ -1,4 +1,15 @@
-Revision history for Net-Async-IRC
+Revision history for Protocol-IRC
+
+0.11    [CHANGES]
+         * Split out from Net-Async-IRC
+         * Set an '_is_me' hint key for every _name or _nick, not just the
+           fixed ones
+         * Updated method documentation style to =head2 barename
+        
+        [BUGFIXES]
+         * Local'ise $_ before readline'ing <DATA> using it
+
+Prior to 0.11, this was bundled as part of Net-Async-IRC
 
 0.10    2014/06/12 02:02:58
         [CHANGES]
