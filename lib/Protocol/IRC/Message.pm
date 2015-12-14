@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2008-2014 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2008-2015 -- leonerd@leonerd.org.uk
 
 package Protocol::IRC::Message;
 
@@ -45,7 +45,9 @@ This class also understands IRCv3 message tags.
 
 =cut
 
-=head2 $message = Protocol::IRC::Message->new_from_line( $line )
+=head2 new_from_line
+
+   $message = Protocol::IRC::Message->new_from_line( $line )
 
 Returns a new C<Protocol::IRC::Message> object, constructed by parsing the
 given IRC line. Most typically used to create a new object to represent a
@@ -85,7 +87,9 @@ sub new_from_line
    return $class->new_with_tags( $command, \%tags, $prefix, @args );
 }
 
-=head2 $message = Protocol::IRC::Message->new( $command, $prefix, @args )
+=head2 new
+
+   $message = Protocol::IRC::Message->new( $command, $prefix, @args )
 
 Returns a new C<Protocol::IRC::Message> object, intialised from the given
 components. Most typically used to create a new object to send to the server
@@ -99,7 +103,9 @@ sub new
    return $class->new_with_tags( $_[0], {}, $_[1], @_[2..$#_] );
 }
 
-=head2 $mesage = Protocol::IRC::Message->new_with_tags( $command, \%tags, $prefix, @args )
+=head2 new_with_tags
+
+   $mesage = Protocol::IRC::Message->new_with_tags( $command, \%tags, $prefix, @args )
 
 Returns a new C<Protocol::IRC::Message> object, as with C<new> but also
 containing the given IRCv3 tags.
@@ -160,9 +166,11 @@ sub new_with_tags
 
 =cut
 
-=head2 $str = $message->STRING
+=head2 STRING
 
-=head2 $str = "$message"
+   $str = $message->STRING
+
+   $str = "$message"
 
 Returns a string representing the message, suitable for use in a debugging
 message or similar. I<Note>: This is not the same as the IRC wire form, to
@@ -181,7 +189,9 @@ sub STRING
                     "args=(" . join( ",", @{ $self->{args} } ) . ")]";
 }
 
-=head2 $command = $message->command
+=head2 command
+
+   $command = $message->command
 
 Returns the command name or numeric stored in the message object.
 
@@ -193,7 +203,9 @@ sub command
    return $self->{command};
 }
 
-=head2 $name = $message->command_name
+=head2 command_name
+
+   $name = $message->command_name
 
 For named commands, returns the command name directly. For server numeric
 replies, returns the name of the numeric.
@@ -208,7 +220,9 @@ sub command_name
    return $NUMERIC_NAMES{ $self->command } || $self->command;
 }
 
-=head2 $tags = $message->tags
+=head2 tags
+
+   $tags = $message->tags
 
 Returns a hash reference containing IRCv3 message tags. This is a reference to
 the hash stored directly by the object itself, so the caller should be careful
@@ -222,7 +236,9 @@ sub tags
    return $self->{tags}
 }
 
-=head2 $prefix = $message->prefix
+=head2 prefix
+
+   $prefix = $message->prefix
 
 Returns the line prefix stored in the object, or the empty string if one was
 not supplied.
@@ -235,7 +251,9 @@ sub prefix
    return defined $self->{prefix} ? $self->{prefix} : "";
 }
 
-=head2 ( $nick, $ident, $host ) = $message->prefix_split
+=head2 prefix_split
+
+   ( $nick, $ident, $host ) = $message->prefix_split
 
 Splits the prefix into its nick, ident and host components. If the prefix
 contains only a hostname (such as the server name), the first two components
@@ -255,7 +273,9 @@ sub prefix_split
    return ( undef, undef, $prefix );
 }
 
-=head2 $arg = $message->arg( $index )
+=head2 arg
+
+   $arg = $message->arg( $index )
 
 Returns the argument at the given index. Uses normal perl array indexing, so
 negative indices work as expected.
@@ -269,7 +289,9 @@ sub arg
    return $self->{args}[$index];
 }
 
-=head2 @args = $message->args
+=head2 args
+
+   @args = $message->args
 
 Returns a list containing all the message arguments.
 
@@ -281,7 +303,9 @@ sub args
    return @{$self->{args}};
 }
 
-=head2 $line = $message->stream_to_line
+=head2 stream_to_line
+
+   $line = $message->stream_to_line
 
 Returns a string suitable for sending the message to the IRC server.
 
@@ -357,7 +381,9 @@ $ARG_NAMES{$_} = { target_name => 0 } for qw(
 # TODO: 472 ERR_UNKNOWNMODE: <char> :is unknown mode char to me for <channel>
 # How to parse this one??
 
-=head2 $names = $message->arg_names
+=head2 arg_names
+
+   $names = $message->arg_names
 
 Returns a hash giving details on how to parse named arguments for the command
 given in this message.
@@ -416,7 +442,9 @@ sub arg_names
    return $ARG_NAMES{$command};
 }
 
-=head2 $args = $message->named_args
+=head2 named_args
+
+   $args = $message->named_args
 
 Parses arguments in the message according to the specification given by the
 C<arg_names> method. Returns a hash of parsed arguments.
@@ -467,7 +495,9 @@ sub named_args
    return \%named_args;
 }
 
-=head2 $disp = $message->gate_disposition
+=head2 gate_disposition
+
+   $disp = $message->gate_disposition
 
 Returns the "gating disposition" of the message. This defines how a reply
 message from the server combines with other messages in response of a command

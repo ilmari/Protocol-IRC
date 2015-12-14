@@ -177,7 +177,9 @@ the connection represents.
 
 =cut
 
-=head2 $irc->on_read( $buffer )
+=head2 on_read
+
+   $irc->on_read( $buffer )
 
 Informs the protocol implementation that more bytes have been read from the
 peer. This method will modify the C<$buffer> directly, and remove from it the
@@ -203,7 +205,9 @@ sub on_read
    }
 }
 
-=head2 $irc->incoming_message( $message )
+=head2 incoming_message
+
+   $irc->incoming_message( $message )
 
 Invoked by the C<on_read> method for every incoming IRC message. This method
 implements the actual dispatch into various handler methods as described in
@@ -280,12 +284,14 @@ sub incoming_message
    }
 }
 
-=head2 $irc->send_message( $message )
+=head2 send_message
+
+   $irc->send_message( $message )
 
 Sends a message to the peer from the given C<Protocol::IRC::Message>
 object.
 
-=head2 $irc->send_message( $command, $prefix, @args )
+   $irc->send_message( $command, $prefix, @args )
 
 Sends a message to the peer directly from the given arguments.
 
@@ -317,7 +323,9 @@ sub send_message
    $self->write( $message->stream_to_line . "\x0d\x0a" );
 }
 
-=head2 $irc->send_ctcp( $prefix, $target, $verb, $argstr )
+=head2 send_ctcp
+
+   $irc->send_ctcp( $prefix, $target, $verb, $argstr )
 
 Shortcut to sending a CTCP message. Sends a PRIVMSG to the given target,
 containing the given verb and argument string.
@@ -332,7 +340,9 @@ sub send_ctcp
    $self->send_message( "PRIVMSG", undef, $target, "\001$verb $argstr\001" );
 }
 
-=head2 $irc->send_ctcprely( $prefix, $target, $verb, $argstr )
+=head2 send_ctcprely
+
+   $irc->send_ctcprely( $prefix, $target, $verb, $argstr )
 
 Shortcut to sending a CTCP reply. As C<send_ctcp> but using a NOTICE instead.
 
@@ -354,7 +364,9 @@ information required.
 
 =cut
 
-=head2 $name_folded = $irc->casefold_name( $name )
+=head2 casefold_name
+
+   $name_folded = $irc->casefold_name( $name )
 
 Returns the C<$name>, folded in case according to the server's C<CASEMAPPING>
 C<ISUPPORT>. Such a folded name will compare using C<eq> according to whether the
@@ -383,7 +395,9 @@ sub casefold_name
    return lc $nick;
 }
 
-=head2 $cmp = $irc->cmp_prefix_flags( $lhs, $rhs )
+=head2 cmp_prefix_flags
+
+   $cmp = $irc->cmp_prefix_flags( $lhs, $rhs )
 
 Compares two channel occupant prefix flags, and returns a signed integer to
 indicate which of them has higher priviledge, according to the server's
@@ -412,7 +426,9 @@ sub cmp_prefix_flags
    return $rhs_index <=> $lhs_index;
 }
 
-=head2 $cmp = $irc->cmp_prefix_modes( $lhs, $rhs )
+=head2 cmp_prefix_modes
+
+   $cmp = $irc->cmp_prefix_modes( $lhs, $rhs )
 
 Similar to C<cmp_prefix_flags>, but compares channel occupant C<MODE> command
 flags.
@@ -435,7 +451,9 @@ sub cmp_prefix_modes
    return $rhs_index <=> $lhs_index;
 }
 
-=head2 $flag = $irc->prefix_mode2flag( $mode )
+=head2 prefix_mode2flag
+
+   $flag = $irc->prefix_mode2flag( $mode )
 
 Converts a channel occupant C<MODE> flag (such as C<o>) into a name prefix
 flag (such as C<@>).
@@ -450,7 +468,9 @@ sub prefix_mode2flag
    return $self->isupport( 'prefix_map_m2f' )->{$mode};
 }
 
-=head2 $mode = $irc->prefix_flag2mode( $flag )
+=head2 prefix_flag2mode
+
+   $mode = $irc->prefix_flag2mode( $flag )
 
 The inverse of C<prefix_mode2flag>.
 
@@ -464,7 +484,9 @@ sub prefix_flag2mode
    return $self->isupport( 'prefix_map_f2m' )->{$flag};
 }
 
-=head2 $classification = $irc->classify_name( $name )
+=head2 classify_name
+
+   $classification = $irc->classify_name( $name )
 
 Returns C<channel> if the given name matches the pattern of names allowed for
 channels according to the server's C<CHANTYPES> C<ISUPPORT>. Returns C<user>
@@ -481,7 +503,9 @@ sub classify_name
    return "user"; # TODO: Perhaps we can be a bit stricter - only check for valid nick chars?
 }
 
-=head2 $me = $irc->is_nick_me( $nick )
+=head2 is_nick_me
+
+   $me = $irc->is_nick_me( $nick )
 
 Returns true if the given nick refers to that in use by the connection.
 
@@ -649,7 +673,9 @@ sub _on_message_text
 
 =cut
 
-=head2 $irc->write( $string )
+=head2 write
+
+   $irc->write( $string )
 
 Requests the byte string to be sent to the peer
 
@@ -657,7 +683,9 @@ Requests the byte string to be sent to the peer
 
 sub write { croak "Attemped to invoke abstract ->write on " . ref $_[0] }
 
-=head2 $encoder = $irc->encoder
+=head2 encoder
+
+   $encoder = $irc->encoder
 
 Optional. If supplied, returns an L<Encode> object used to encode or decode
 the bytes appearing in a C<text> field of a message. If set, all text strings
@@ -668,7 +696,9 @@ encoded or decoded using this object.
 
 sub encoder { undef }
 
-=head2 $result = $irc->invoke( $name, @args )
+=head2 invoke
+
+   $result = $irc->invoke( $name, @args )
 
 Optional. If provided, invokes the message handling routine called C<$name>
 with the given arguments. A default implementation is provided which simply
@@ -690,7 +720,9 @@ sub invoke
    return $self->$name( @args );
 }
 
-=head2 $value = $irc->isupport( $field )
+=head2 isupport
+
+   $value = $irc->isupport( $field )
 
 Should return the value of the given C<ISUPPORT> field.
 
@@ -737,11 +769,15 @@ character in C<CHANTYPES>.
 
 sub isupport { croak "Attempted to invoke abstract ->isupport on " . ref $_[0] }
 
-=head2 $nick = $irc->nick
+=head2 nick
+
+   $nick = $irc->nick
 
 Should return the current nick in use by the connection.
 
-=head2 $nick_folded = $irc->nick_folded
+=head2 nick_folded
+
+   $nick_folded = $irc->nick_folded
 
 Optional. If supplied, should return the current nick as case-folded by the
 C<casefold_name> method. If not provided, this will be performed by 

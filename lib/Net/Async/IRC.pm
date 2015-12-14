@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2008-2014 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2008-2015 -- leonerd@leonerd.org.uk
 
 package Net::Async::IRC;
 
@@ -150,7 +150,9 @@ L<Future> instances.
 
 =cut
 
-=head2 $irc = $irc->connect( %args )->get
+=head2 connect
+
+   $irc = $irc->connect( %args )->get
 
 Connects to the IRC server. This method does not perform the complete IRC
 login sequence; for that see instead the C<login> method. The returned
@@ -171,7 +173,7 @@ Optional. Port number or service name of the IRC server. Defaults to 6667.
 Any other arguments are passed into the underlying C<IO::Async::Loop>
 C<connect> method.
 
-=head2 $irc->connect( %args )
+   $irc->connect( %args )
 
 The following additional arguments are used to provide continuations when not
 returning a Future.
@@ -236,7 +238,9 @@ sub connect
    )->on_fail( sub { undef $self->{connect_f} } );
 }
 
-=head2 $irc = $irc->login( %args )->get
+=head2 login
+
+   $irc = $irc->login( %args )->get
 
 Logs in to the IRC network, connecting first using the C<connect> method if
 required. Takes the following named arguments:
@@ -262,7 +266,7 @@ Any other arguments that are passed, are forwarded to the C<connect> method if
 it is required; i.e. if C<login> is invoked when not yet connected to the
 server.
 
-=head2 $irc->login( %args )
+   $irc->login( %args )
 
 The following additional arguments are used to provide continuations when not
 returning a Future.
@@ -313,7 +317,9 @@ sub login
    })->on_fail( sub { undef $self->{login_f} } );
 }
 
-=head2 $irc->change_nick( $newnick )
+=head2 change_nick
+
+   $irc->change_nick( $newnick )
 
 Requests to change the nick. If unconnected, the change happens immediately
 to the stored defaults. If logged in, sends a C<NICK> command to the server,
@@ -380,7 +386,9 @@ sub _on_message_cap_reply
    return 1;
 }
 
-=head2 $caps = $irc->caps_supported
+=head2 caps_supported
+
+   $caps = $irc->caps_supported
 
 Returns a HASH whose keys give the capabilities listed by the server as
 supported in its C<CAP LS> response. If the server ignored the C<CAP>
@@ -394,7 +402,9 @@ sub caps_supported
    return $self->{caps_supported};
 }
 
-=head2 $supported = $irc->cap_supported( $cap )
+=head2 cap_supported
+
+   $supported = $irc->cap_supported( $cap )
 
 Returns a boolean indicating if the server supports the named capability.
 
@@ -407,7 +417,9 @@ sub cap_supported
    return !!$self->{caps_supported}{$cap};
 }
 
-=head2 $caps = $irc->caps_enabled
+=head2 caps_enabled
+
+   $caps = $irc->caps_enabled
 
 Returns a HASH whose keys give the capabilities successfully enabled by the
 server as part of the C<CAP REQ> login sequence. If the server ignored the
@@ -421,7 +433,9 @@ sub caps_enabled
    return $self->{caps_enabled};
 }
 
-=head2 $enabled = $irc->cap_enabled( $cap )
+=head2 cap_enabled
+
+   $enabled = $irc->cap_enabled( $cap )
 
 Returns a boolean indicating if the client successfully enabled the named
 capability.

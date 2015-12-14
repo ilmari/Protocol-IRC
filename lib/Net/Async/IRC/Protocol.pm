@@ -109,7 +109,9 @@ incoming messages.
 
 =cut
 
-=head2 $irc = Net::Async::IRC::Protocol->new( %args )
+=head2 new
+
+   $irc = Net::Async::IRC::Protocol->new( %args )
 
 Returns a new instance of a C<Net::Async::IRC::Protocol> object. This object
 represents a IRC connection to a peer. As it is a subclass of
@@ -231,7 +233,9 @@ sub incoming_message
 
 =cut
 
-=head2 $connect = $irc->is_connected
+=head2 is_connected
+
+   $connect = $irc->is_connected
 
 Returns true if a connection to the peer is established. Note that even
 after a successful connection, the connection may not yet logged in to. See
@@ -246,7 +250,9 @@ sub is_connected
    return $connect_f->is_ready && !$connect_f->failure;
 }
 
-=head2 $loggedin = $irc->is_loggedin
+=head2 is_loggedin
+
+   $loggedin = $irc->is_loggedin
 
 Returns true if the full login sequence has been performed on the connection
 and it is ready to use.
@@ -283,7 +289,9 @@ sub on_read
    die "$e\n";
 }
 
-=head2 $nick = $irc->nick
+=head2 nick
+
+   $nick = $irc->nick
 
 Returns the current nick in use by the connection.
 
@@ -302,7 +310,9 @@ sub nick
    return $self->{nick};
 }
 
-=head2 $nick_folded = $irc->nick_folded
+=head2 nick_folded
+
+   $nick_folded = $irc->nick_folded
 
 Returns the current nick in use by the connection, folded by C<casefold_name>
 for convenience.

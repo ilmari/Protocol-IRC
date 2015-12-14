@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2010-2014 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2010-2015 -- leonerd@leonerd.org.uk
 
 package Protocol::IRC::Client;
 
@@ -38,7 +38,9 @@ It provides some of the methods required by C<Protocol::IRC>:
 
 =cut
 
-=head2 $value = $irc->isupport( $key )
+=head2 isupport
+
+   $value = $irc->isupport( $key )
 
 Returns an item of information from the server's C<005 ISUPPORT> lines.
 Traditionally IRC servers use all-capital names for keys.
@@ -105,7 +107,9 @@ sub on_message_RPL_ISUPPORT
    return 0;
 }
 
-=head2 $info = $irc->server_info( $key )
+=head2 server_info
+
+   $info = $irc->server_info( $key )
 
 Returns an item of information from the server's C<004> line. C<$key> should
 one of
