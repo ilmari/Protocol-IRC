@@ -271,7 +271,7 @@ sub on_message_CAP
 
 =head2 MODE (on channels) and 324 (RPL_CHANNELMODEIS)
 
-These message involve channel modes. The raw list of channel modes is parsed
+These messages involve channel modes. The raw list of channel modes is parsed
 into an array containing one entry per affected piece of data. Each entry will
 contain at least a C<type> key, indicating what sort of mode or mode change
 it is:
@@ -387,8 +387,8 @@ sub prepare_hints_RPL_CHANNELMODEIS
 
 =head2 RPL_WHOREPLY and RPL_ENDOFWHO
 
-These messages will be collected up, per channel, and formed into a single
-synthesized event called C<who>.
+These messages will be collected up, per channel, by the message gating
+system, and formed into a single synthesized event called C<who>.
 
 Its hints hash will contain an extra key, C<who>, which will be an ARRAY ref
 containing the lines of the WHO reply. Each line will be a HASH reference
@@ -429,8 +429,8 @@ sub on_gate_done_who
 
 =head2 RPL_NAMEREPLY and RPL_ENDOFNAMES
 
-These messages will be collected up, per channel, and formed into a single
-synthesized event called C<names>.
+These messages will be collected up, per channel, by the message gating
+system, and formed into a single synthesized event called C<names>.
 
 Its hints hash will contain an extra key, C<names>, which will be an ARRAY ref
 containing the usernames in the channel. Each will be a HASH reference
@@ -473,8 +473,8 @@ sub on_gate_done_names
 
 =head2 RPL_BANLIST and RPL_ENDOFBANS
 
-These messages will be collected up, per channel, and formed into a single
-synthesized event called C<bans>.
+These messages will be collected up, per channel, by the message gating
+system, and formed into a single synthesized event called C<bans>.
 
 Its hints hash will contain an extra key, C<bans>, which will be an ARRAY ref
 containing the ban lines. Each line will be a HASH reference containing:
@@ -516,7 +516,8 @@ sub on_gate_done_bans
 
 =head2 RPL_MOTD, RPL_MOTDSTART and RPL_ENDOFMOTD
 
-These messages will be collected up into a synthesized event called C<motd>.
+These messages will be collected up, by the message gating system, into a
+synthesized event called C<motd>.
 
 Its hints hash will contain an extra key, C<motd>, which will be an ARRAY ref
 containing the lines of the MOTD.
@@ -535,7 +536,8 @@ sub on_gate_done_motd
 
 =head2 RPL_WHOIS* and RPL_ENDOFWHOIS
 
-These messages will be collected up into a synthesized event called C<whois>.
+These messages will be collected up, by the message gating system, into a
+synthesized event called C<whois>.
 
 Each C<RPL_WHOIS*> reply will be stripped of the standard hints hash keys,
 leaving whatever remains. Added to this will be a key called C<whois>, whose

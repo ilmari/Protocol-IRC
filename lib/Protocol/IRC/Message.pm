@@ -224,7 +224,7 @@ sub command_name
 
    $tags = $message->tags
 
-Returns a hash reference containing IRCv3 message tags. This is a reference to
+Returns a HASH reference containing IRCv3 message tags. This is a reference to
 the hash stored directly by the object itself, so the caller should be careful
 not to modify it.
 
@@ -385,8 +385,8 @@ $ARG_NAMES{$_} = { target_name => 0 } for qw(
 
    $names = $message->arg_names
 
-Returns a hash giving details on how to parse named arguments for the command
-given in this message.
+Returns a HASH reference giving details on how to parse named arguments for
+the command given in this message.
 
 This will be a hash whose keys give the names of the arguments, and the values
 of these keys indicate how that argument is derived from the simple positional
