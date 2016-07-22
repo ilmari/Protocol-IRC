@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2008-2015 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2008-2016 -- leonerd@leonerd.org.uk
 
 package Protocol::IRC::Message;
 
