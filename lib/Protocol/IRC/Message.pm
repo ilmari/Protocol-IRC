@@ -674,3 +674,5 @@ __DATA__
 606=RPL_WATCHLIST      | 1@=nicks
 607=RPL_ENDOFWATCHLIST | text
 609=RPL_NOWISAWAY      | target_name,ident,host,timestamp,text
+
+671=RPL_WHOISSECURE | target_name,text | -whois
