@@ -541,6 +541,8 @@ Paul Evans <leonerd@leonerd.org.uk>
 local $_;
 while( <DATA> ) {
    chomp;
+   m/^\s*#/ and next; # ignore comments
+
    my ( $numname, $args, $gating ) = split m/\s*\|\s*/, $_ or next;
    my ( $num, $name ) = split m/=/, $numname;
 
@@ -658,3 +660,17 @@ __DATA__
 478=ERR_BANLISTFULL             | target_name,text
 
 482=ERR_CHANOPRIVSNEEDED        | target_name,text
+
+# WATCH related - see
+#   http://archives.darenet.org/irc/misc/irc-docs-master/misc/irc-documentation-jilles/reference/draft-meglio-irc-watch-00.txt
+598=RPL_GONEAWAY       | target_name,ident,host,timestamp,text
+599=RPL_NOTAWAY        | target_name,ident,host,timestamp,text
+600=RPL_LOGON          | target_name,ident,host,timestamp,text
+601=RPL_LOGOFF         | target_name,ident,host,timestamp,text
+602=RPL_WATCHOFF       | target_name,ident,host,timestamp,text
+603=RPL_WATCHSTAT      | text
+604=RPL_NOWON          | target_name,ident,host,timestamp,text
+605=RPL_NOWOFF         | target_name,ident,host,timestamp,text
+606=RPL_WATCHLIST      | 1@=nicks
+607=RPL_ENDOFWATCHLIST | text
+609=RPL_NOWISAWAY      | target_name,ident,host,timestamp,text
