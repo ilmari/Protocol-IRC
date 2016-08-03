@@ -103,6 +103,46 @@ sub new
    return $class->new_with_tags( $_[0], {}, $_[1], @_[2..$#_] );
 }
 
+=head2 new_from_named_args
+
+   $message = Protocol::IRC::Message->new_from_named_args( $command, %args )
+
+Returns a new C<Protocol::IRC::Message> object, initialised from the given
+named argmuents. The argument names must match those required by the given
+command.
+
+=cut
+
+sub new_from_named_args
+{
+   my $class = shift;
+   my ( $command, %args ) = @_;
+
+   my $argnames = $class->arg_names( $command );
+
+   my @args;
+
+   foreach my $name ( keys %$argnames ) {
+      my $idx = $argnames->{$name};
+
+      # Clients don't get to set prefix nick
+      # TODO: servers do
+      next if $idx eq "pn";
+
+      defined( my $value = $args{$name} ) or
+         croak "$command requires a named argmuent of '$name'";
+
+      if( $idx =~ m/^\d+$/ ) {
+         $args[$idx] = $args{$name};
+      }
+      else {
+         die "TODO: not sure what to do with argname idx $idx\n";
+      }
+   }
+
+   return $class->new( $command, undef, @args );
+}
+
 =head2 new_with_tags
 
    $mesage = Protocol::IRC::Message->new_with_tags( $command, \%tags, $prefix, @args )
