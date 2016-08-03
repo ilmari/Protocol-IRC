@@ -422,11 +422,18 @@ the result will be split on spaces and stored in an ARRAY ref.
 
 =back
 
+=head2 arg_names (class method)
+
+   $names = Protocol::IRC::Message->arg_names( $command )
+
+This method may also be invoked as a class method by passing in the command
+name or numeric. This allows inspection of what arguments would be required
+or returned before a message object itself is constructed.
+
 =cut
 
 sub arg_names
 {
-   # Usage: Class->arg_names($command) or $self->arg_names()
    my $command;
 
    if( ref $_[0] ) {

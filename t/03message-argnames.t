@@ -61,4 +61,8 @@ test_argnames "319",
    is( $msg->gate_disposition, "-motd", '372 gate_disposition' );
 }
 
+is_deeply( Protocol::IRC::Message->arg_names( "PING" ),
+   { text => 0 },
+   'Protocol::IRC::Message->arg_names as a class method' );
+
 done_testing;
