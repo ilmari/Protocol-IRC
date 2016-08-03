@@ -8,6 +8,7 @@ use Test::More;
 my $CRLF = "\x0d\x0a"; # because \r\n isn't portable
 
 my @messages;
+my @written;
 
 my $irc = TestIRC->new;
 sub write_irc
@@ -19,15 +20,27 @@ sub write_irc
 
 ok( defined $irc, 'defined $irc' );
 
-write_irc( ':irc.example.com COMMAND arg1 arg2 :here is arg3' . $CRLF );
+# receiving
+{
+   write_irc( ':irc.example.com COMMAND arg1 arg2 :here is arg3' . $CRLF );
 
-my ( $command, $msg, $hints );
-( $command, $msg, $hints ) = @{ shift @messages };
+   my ( $command, $msg, $hints );
+   ( $command, $msg, $hints ) = @{ shift @messages };
 
-is( $command, "COMMAND", '$command' );
-is( $msg->command, "COMMAND", '$msg->command' );
+   is( $command, "COMMAND", '$command' );
+   is( $msg->command, "COMMAND", '$msg->command' );
 
-is_deeply( [ $msg->args ], [ 'arg1', 'arg2', 'here is arg3' ], '$msg->args' );
+   is_deeply( [ $msg->args ], [ 'arg1', 'arg2', 'here is arg3' ], '$msg->args' );
+}
+
+# sending
+{
+   $irc->send_message( Protocol::IRC::Message->new( CMDA => ) );
+   is( shift @written, "CMDA", '->send_message( P:I::Message )' );
+
+   $irc->send_message( CMDB => undef );
+   is( shift @written, "CMDB", '->send_message( $command, $prefix, @args )' );
+}
 
 done_testing;
 
@@ -44,3 +57,5 @@ sub on_message
    my ( $command, $message, $hints ) = @_;
    push @messages, [ $command, $message, $hints ];
 }
+
+sub write { $_[1] =~ s/\x0d\x0a$//; push @written, $_[1] }
