@@ -38,8 +38,15 @@ ok( defined $irc, 'defined $irc' );
    $irc->send_message( Protocol::IRC::Message->new( CMDA => ) );
    is( shift @written, "CMDA", '->send_message( P:I::Message )' );
 
+   $irc->send_message( PING => { text => "12345" } );
+   is( shift @written, "PING 12345", '->send_message( $command, { %namedargs } )' );
+
    $irc->send_message( CMDB => undef );
    is( shift @written, "CMDB", '->send_message( $command, $prefix, @args )' );
+
+   # Name mangling
+   $irc->send_message( JOIN => { target => "#channel" } );
+   is( shift @written, "JOIN #channel", 'target to target_name mangling' );
 }
 
 done_testing;

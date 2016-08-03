@@ -11,6 +11,7 @@ use warnings;
 our $VERSION = '0.11';
 
 use Carp;
+use Scalar::Util qw( blessed );
 
 use Protocol::IRC::Message;
 
@@ -286,14 +287,42 @@ sub incoming_message
 
 =head2 send_message
 
+This method takes arguments in three different forms, depending on their
+number and type.
+
+If the first argument is a reference then it must contain a
+C<Protocol::IRC::Message> instance which will be sent directly:
+
    $irc->send_message( $message )
 
-Sends a message to the peer from the given C<Protocol::IRC::Message>
-object.
+Otherwise, the first argument must be a plain string that gives the command
+name. If the second argument is a hash, it provides named arguments in a form
+similar to L<Protocol::IRC::Message/new_from_named_args>, otherwise the
+remaining arguments must be the prefix string and other positional arguments,
+as plain strings:
+
+   $irc->send_message( $command, { %args }
 
    $irc->send_message( $command, $prefix, @args )
 
-Sends a message to the peer directly from the given arguments.
+=head3 Named Argument Mangling
+
+For symmetry with incoming message processing, this method applies some
+adjustment of named arguments for convenience of callers.
+
+=over 4
+
+=item *
+
+Callers may define a named argument of C<target>; it will be renamed to
+C<target_name>.
+
+=item *
+
+If a named argument of C<text> is defined and an L</encoder> exists, the
+argument value will be encoded using this encoder.
+
+=back
 
 =cut
 
@@ -305,19 +334,38 @@ sub send_message
 
    if( @_ == 1 ) {
       $message = shift;
+      blessed $message and $message->isa( "Protocol::IRC::Message" ) or
+         croak "Expected an instance of Protocol::IRC::Message";
    }
    else {
-      my ( $command, $prefix, @args ) = @_;
+      my $command = shift;
+      ref $command and
+         croak "Expected \$command to be a plain string";
 
-      if( my $encoder = $self->encoder ) {
-         my $argnames = Protocol::IRC::Message->arg_names( $command );
+      if( @_ == 1 and ref $_[0] ) {
+         my %args = %{ $_[0] };
 
-         if( defined( my $i = $argnames->{text} ) ) {
-            $args[$i] = $encoder->encode( $args[$i] ) if defined $args[$i];
+         $args{target_name} = delete $args{target} if defined $args{target};
+
+         if( defined $args{text} and my $encoder = $self->encoder ) {
+            $args{text} = $encoder->encode( $args{text} );
          }
-      }
 
-      $message = Protocol::IRC::Message->new( $command, $prefix, @args );
+         $message = Protocol::IRC::Message->new_from_named_args( $command, %args );
+      }
+      else {
+         my ( $prefix, @args ) = @_;
+
+         if( my $encoder = $self->encoder ) {
+            my $argnames = Protocol::IRC::Message->arg_names( $command );
+
+            if( defined( my $i = $argnames->{text} ) ) {
+               $args[$i] = $encoder->encode( $args[$i] ) if defined $args[$i];
+            }
+         }
+
+         $message = Protocol::IRC::Message->new( $command, $prefix, @args );
+      }
    }
 
    $self->write( $message->stream_to_line . "\x0d\x0a" );
