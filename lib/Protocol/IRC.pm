@@ -301,7 +301,7 @@ similar to L<Protocol::IRC::Message/new_from_named_args>, otherwise the
 remaining arguments must be the prefix string and other positional arguments,
 as plain strings:
 
-   $irc->send_message( $command, { %args }
+   $irc->send_message( $command, { %args } )
 
    $irc->send_message( $command, $prefix, @args )
 
