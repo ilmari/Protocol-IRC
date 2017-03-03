@@ -49,6 +49,24 @@ See L<Protocol::IRC/send_message>
 
 =cut
 
+sub _invoke_synthetic
+{
+   my $self = shift;
+   my ( $command, $message, $hints, @morehints ) = @_;
+
+   my %hints = (
+      %$hints,
+      synthesized => 1,
+      @morehints,
+   );
+   delete $hints{handled};
+
+   $self->invoke( "on_message_$command", $message, \%hints ) and $hints{handled} = 1;
+   $self->invoke( "on_message", $command, $message, \%hints ) and $hints{handled} = 1;
+
+   return $hints{handled};
+}
+
 =head1 METHODS
 
 =cut
@@ -231,24 +249,6 @@ sub on_message_gate
 The following messages are handled internally by C<Protocol::IRC::Client>.
 
 =cut
-
-sub _invoke_synthetic
-{
-   my $self = shift;
-   my ( $command, $message, $hints, @morehints ) = @_;
-
-   my %hints = (
-      %$hints,
-      synthesized => 1,
-      @morehints,
-   );
-   delete $hints{handled};
-
-   $self->invoke( "on_message_$command", $message, \%hints ) and $hints{handled} = 1;
-   $self->invoke( "on_message", $command, $message, \%hints ) and $hints{handled} = 1;
-
-   return $hints{handled};
-}
 
 =head2 CAP
 
