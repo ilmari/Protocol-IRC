@@ -34,6 +34,21 @@ It provides some of the methods required by C<Protocol::IRC>:
 
 =cut
 
+=head1 INHERITED METHODS
+
+The following methods, inherited from L<Protocol::IRC>, are notable here as
+being particularly useful for a client.
+
+=head2 send_message
+
+   $irc->send_message( $message )
+   $irc->send_message( $command, { %args } )
+   $irc->send_message( $command, $prefix, @args )
+
+See L<Protocol::IRC/send_message>
+
+=cut
+
 =head1 METHODS
 
 =cut

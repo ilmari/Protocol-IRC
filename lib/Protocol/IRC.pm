@@ -28,7 +28,9 @@ allows reading of IRC messages from a string buffer and dispatching them to
 handler methods on its instance.
 
 L<Protocol::IRC::Client> provides an extension to this logic that may be more
-convenient for IRC client implementations.
+convenient for IRC client implementations. Much of the code provided here is
+still useful in client applications, so the reader should be familiar with
+both modules.
 
 =head1 MESSAGE HANDLING
 
@@ -718,6 +720,9 @@ sub _on_message_text
 }
 
 =head1 REQUIRED METHODS
+
+As this class is an abstract base class, a concrete implementation must
+provide the following methods to complete it and make it useable.
 
 =cut
 
