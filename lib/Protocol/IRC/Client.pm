@@ -216,15 +216,14 @@ sub on_message_gate
    my $target = $hints->{target_name_folded} // "*";
 
    if( $effect eq "more" ) {
-      push @{ $self->{Protocol_IRC_gate}{$target}{$gate} }, {
+      push @{ $self->{Protocol_IRC_gate}{$gate}{$target} }, {
          %$hints,
          command => $message->command_name,
       };
       return 1;
    }
 
-   my $data = delete $self->{Protocol_IRC_gate}{$target}{$gate};
-   keys %{ $self->{Protocol_IRC_gate}{$target} } or delete $self->{Protocol_IRC_gate}{$target};
+   my $data = delete $self->{Protocol_IRC_gate}{$gate}{$target};
 
    my @morehints;
    if( $effect eq "done" and my $code = $self->can( "prepare_gatehints_$gate" ) ) {
