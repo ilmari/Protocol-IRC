@@ -53,6 +53,8 @@ sub write_irc
 
    ( my $command, $message, $hints ) = @{ shift @messages };
 
+   is( $hints->{target_name}, "#channel", '$hints->{target_name}' );
+
    is_deeply( $hints->{names},
               {
                  some  => { nick => "Some",  flag => '@' },
@@ -76,6 +78,8 @@ sub write_irc
 
    ( my $command, $message, $hints ) = @{ shift @messages };
 
+   is( $hints->{target_name}, "#channel", '$hints->{target_name}' );
+
    is_deeply( $hints->{bans},
               [
                  { mask => 'a*!a@a.com', by_nick => "Banner", by_nick_folded => "banner", timestamp => 12345 },
@@ -96,6 +100,8 @@ sub write_irc
    is( ref $data, "ARRAY", 'Gate $data is an ARRAY' );
 
    ( my $command, $message, $hints ) = @{ shift @messages };
+
+   is( $hints->{target_name}, "#channel", '$hints->{target_name}' );
 
    is_deeply( $hints->{who},
               [
@@ -124,6 +130,8 @@ sub write_irc
    is( ref $data, "ARRAY", 'Gate $data is an ARRAY' );
 
    ( my $command, $message, $hints ) = @{ shift @messages };
+
+   is( $hints->{target_name}, "UserNick", '$hints->{target_name}' );
 
    is_deeply( $hints->{whois},
               [
