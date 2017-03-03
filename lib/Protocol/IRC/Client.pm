@@ -49,24 +49,6 @@ See L<Protocol::IRC/send_message>
 
 =cut
 
-sub _invoke_synthetic
-{
-   my $self = shift;
-   my ( $command, $message, $hints, @morehints ) = @_;
-
-   my %hints = (
-      %$hints,
-      synthesized => 1,
-      @morehints,
-   );
-   delete $hints{handled};
-
-   $self->invoke( "on_message_$command", $message, \%hints ) and $hints{handled} = 1;
-   $self->invoke( "on_message", $command, $message, \%hints ) and $hints{handled} = 1;
-
-   return $hints{handled};
-}
-
 =head1 METHODS
 
 =cut
@@ -211,7 +193,19 @@ A method called C<on_gate>
 
  $client->on_gate( 'EFFECT, 'GATE', $message, $hints, $data )
 
+=item 4.
+
+If the gate effect is C<done>, two more places are tried; looking like regular
+event handling on a command whose name is the (lowercase) gate name
+
+ $client->on_message_GATE( $message, $hints )
+
+ $client->on_message( 'GATE', $message, $hints )
+
 =back
+
+For the following types of gate, the C<$data> is further processed in the
+following way to provide extra hints fields.
 
 =cut
 
@@ -232,16 +226,207 @@ sub on_message_gate
    my $data = delete $self->{Protocol_IRC_gate}{$target}{$gate};
    keys %{ $self->{Protocol_IRC_gate}{$target} } or delete $self->{Protocol_IRC_gate}{$target};
 
+   my @morehints;
+   if( $effect eq "done" and my $code = $self->can( "prepare_gatehints_$gate" ) ) {
+      @morehints = $self->$code( $data );
+   }
+
    my %hints = (
       %$hints,
       synthesized => 1,
+      @morehints,
    );
 
    $self->invoke( "on_gate_${effect}_$gate", $message, \%hints, $data ) and $hints{handled} = 1;
    $self->invoke( "on_gate_$effect", $gate, $message, \%hints, $data ) and $hints{handled} = 1;
    $self->invoke( "on_gate", $effect, $gate, $message, \%hints, $data ) and $hints{handled} = 1;
 
+   if( $effect eq "done" ) {
+      $self->invoke( "on_message_$gate", $message, \%hints ) and $hints{handled} = 1;
+      $self->invoke( "on_message", $gate, $message, \%hints ) and $hints{handled} = 1;
+   }
+
    return $hints{handled};
+}
+
+=head2 who
+
+The hints hash will contain an extra key, C<who>, which will be an ARRAY ref
+containing the lines of the WHO reply. Each line will be a HASH reference
+containing:
+
+=over 8
+
+=item user_ident
+
+=item user_host
+
+=item user_server
+
+=item user_nick
+
+=item user_nick_folded
+
+=item user_flags
+
+=back
+
+=cut
+
+sub prepare_gatehints_who
+{
+   my $self = shift;
+   my ( $data ) = @_;
+
+   my @who = map {
+      my $b = $_;
+      +{ map { $_ => $b->{$_} } qw( user_ident user_host user_server user_nick user_nick_folded user_flags ) }
+   } @$data;
+
+   return who => \@who;
+}
+
+=head2 names
+
+The hints hash will contain an extra key, C<names>, which will be an ARRAY ref
+containing the usernames in the channel. Each will be a HASH reference
+containing:
+
+=over 8
+
+=item nick
+
+=item flag
+
+=back
+
+=cut
+
+sub prepare_gatehints_names
+{
+   my $self = shift;
+   my ( $data ) = @_;
+
+   my @names = map { @{ $_->{names} } } @$data;
+
+   my $prefixflag_re = $self->isupport( 'prefixflag_re' );
+   my $re = qr/^($prefixflag_re)?(.*)$/;
+
+   my %names;
+
+   foreach my $name ( @names ) {
+      my ( $flag, $nick ) = $name =~ $re or next;
+
+      $flag ||= ''; # make sure it's defined
+
+      $names{ $self->casefold_name( $nick ) } = { nick => $nick, flag => $flag };
+   }
+
+   return names => \%names;
+}
+
+=head2 bans
+
+The hints hash will contain an extra key, C<bans>, which will be an ARRAY ref
+containing the ban lines. Each line will be a HASH reference containing:
+
+=over 8
+
+=item mask
+
+User mask of the ban
+
+=item by_nick
+
+=item by_nick_folded
+
+Nickname of the user who set the ban
+
+=item timestamp
+
+UNIX timestamp the ban was created
+
+=back
+
+=cut
+
+sub prepare_gatehints_bans
+{
+   my $self = shift;
+   my ( $data ) = @_;
+
+   my @bans = map {
+      my $b = $_;
+      +{ map { $_ => $b->{$_} } qw( mask by_nick by_nick_folded timestamp ) }
+   } @$data;
+
+   return bans => \@bans;
+}
+
+=head2 motd
+
+The hints hash will contain an extra key, C<motd>, which will be an ARRAY ref
+containing the lines of the MOTD.
+
+=cut
+
+sub prepare_gatehints_motd
+{
+   my $self = shift;
+   my ( $data ) = @_;
+
+   return motd => [ map { $_->{text} } @$data ];
+}
+
+=head2 whois
+
+The hints hash will contain an extra key, C<whois>, which will be an ARRAY ref
+of entries that mostly relate to the received C<RPL_WHOIS*> numerics.
+
+Each C<RPL_WHOIS*> reply will be stripped of the standard hints hash keys,
+leaving whatever remains. Added to this will be a key called C<whois>, whose
+value will be the command name, minus the leading C<RPL_WHOIS>, and converted
+to lowercase.
+
+=cut
+
+use constant STANDARD_HINTS => qw(
+   prefix_nick prefix_nick_folded
+   prefix_name prefix_name_folded
+   prefix_user
+   prefix_host
+   target_name target_name_folded
+   target_is_me
+   target_type
+   handled
+);
+
+sub prepare_gatehints_whois
+{
+   my $self = shift;
+   my ( $data ) = @_;
+
+   my @whois;
+   my $channels;
+
+   foreach my $h ( @$data ) {
+      # Just delete all the standard hints from each one
+      delete @{$h}{STANDARD_HINTS()};
+      ( $h->{whois} = lc delete $h->{command} ) =~ s/^rpl_whois//;
+
+      # Combine all the 'channels' results into one list
+      if( $h->{whois} eq "channels" ) {
+         if( $channels ) {
+            push @{$channels->{channels}}, @{$h->{channels}};
+            next;
+         }
+         $channels = $h;
+      }
+
+      push @whois, $h;
+   }
+
+   return whois => \@whois;
 }
 
 =head1 INTERNAL MESSAGE HANDLING
@@ -398,195 +583,6 @@ sub prepare_hints_RPL_CHANNELMODEIS
    my ( $message, $hints ) = @_;
 
    $self->prepare_hints_channelmode( $message, $hints );
-}
-
-=head2 RPL_WHOREPLY and RPL_ENDOFWHO
-
-These messages will be collected up, per channel, by the message gating
-system, and formed into a single synthesized event called C<who>.
-
-Its hints hash will contain an extra key, C<who>, which will be an ARRAY ref
-containing the lines of the WHO reply. Each line will be a HASH reference
-containing:
-
-=over 8
-
-=item user_ident
-
-=item user_host
-
-=item user_server
-
-=item user_nick
-
-=item user_nick_folded
-
-=item user_flags
-
-=back
-
-=cut
-
-sub on_gate_done_who
-{
-   my $self = shift;
-   my ( $message, $hints, $data ) = @_;
-
-   my @who = map {
-      my $b = $_;
-      +{ map { $_ => $b->{$_} } qw( user_ident user_host user_server user_nick user_nick_folded user_flags ) }
-   } @$data;
-
-   $self->_invoke_synthetic( "who", $message, $hints,
-      who => \@who,
-   );
-}
-
-=head2 RPL_NAMEREPLY and RPL_ENDOFNAMES
-
-These messages will be collected up, per channel, by the message gating
-system, and formed into a single synthesized event called C<names>.
-
-Its hints hash will contain an extra key, C<names>, which will be an ARRAY ref
-containing the usernames in the channel. Each will be a HASH reference
-containing:
-
-=over 8
-
-=item nick
-
-=item flag
-
-=back
-
-=cut
-
-sub on_gate_done_names
-{
-   my $self = shift;
-   my ( $message, $hints, $data ) = @_;
-
-   my @names = map { @{ $_->{names} } } @$data;
-
-   my $prefixflag_re = $self->isupport( 'prefixflag_re' );
-   my $re = qr/^($prefixflag_re)?(.*)$/;
-
-   my %names;
-
-   foreach my $name ( @names ) {
-      my ( $flag, $nick ) = $name =~ $re or next;
-
-      $flag ||= ''; # make sure it's defined
-
-      $names{ $self->casefold_name( $nick ) } = { nick => $nick, flag => $flag };
-   }
-
-   $self->_invoke_synthetic( "names", $message, $hints,
-      names => \%names,
-   );
-}
-
-=head2 RPL_BANLIST and RPL_ENDOFBANS
-
-These messages will be collected up, per channel, by the message gating
-system, and formed into a single synthesized event called C<bans>.
-
-Its hints hash will contain an extra key, C<bans>, which will be an ARRAY ref
-containing the ban lines. Each line will be a HASH reference containing:
-
-=over 8
-
-=item mask
-
-User mask of the ban
-
-=item by_nick
-
-=item by_nick_folded
-
-Nickname of the user who set the ban
-
-=item timestamp
-
-UNIX timestamp the ban was created
-
-=back
-
-=cut
-
-sub on_gate_done_bans
-{
-   my $self = shift;
-   my ( $message, $hints, $data ) = @_;
-
-   my @bans = map {
-      my $b = $_;
-      +{ map { $_ => $b->{$_} } qw( mask by_nick by_nick_folded timestamp ) }
-   } @$data;
-
-   $self->_invoke_synthetic( "bans", $message, $hints,
-      bans => \@bans,
-   );
-}
-
-=head2 RPL_MOTD, RPL_MOTDSTART and RPL_ENDOFMOTD
-
-These messages will be collected up, by the message gating system, into a
-synthesized event called C<motd>.
-
-Its hints hash will contain an extra key, C<motd>, which will be an ARRAY ref
-containing the lines of the MOTD.
-
-=cut
-
-sub on_gate_done_motd
-{
-   my $self = shift;
-   my ( $message, $hints, $data ) = @_;
-
-   $self->_invoke_synthetic( "motd", $message, $hints,
-      motd => [ map { $_->{text} } @$data ],
-   );
-}
-
-=head2 RPL_WHOIS* and RPL_ENDOFWHOIS
-
-These messages will be collected up, by the message gating system, into a
-synthesized event called C<whois>.
-
-Each C<RPL_WHOIS*> reply will be stripped of the standard hints hash keys,
-leaving whatever remains. Added to this will be a key called C<whois>, whose
-value will be the command name, minus the leading C<RPL_WHOIS>, and converted
-to lowercase.
-
-=cut
-
-sub on_gate_done_whois
-{
-   my $self = shift;
-   my ( $message, $hints, $data ) = @_;
-
-   my @whois;
-   my $channels;
-
-   foreach my $h ( @$data ) {
-      # Just delete all the standard hints from each one
-      delete @{$h}{keys %$hints};
-      ( $h->{whois} = lc delete $h->{command} ) =~ s/^rpl_whois//;
-
-      # Combine all the 'channels' results into one list
-      if( $h->{whois} eq "channels" ) {
-         if( $channels ) {
-            push @{$channels->{channels}}, @{$h->{channels}};
-            next;
-         }
-         $channels = $h;
-      }
-
-      push @whois, $h;
-   }
-
-   $self->_invoke_synthetic( "whois", $message, $hints, whois => \@whois );
 }
 
 =head1 COMMAND-SENDING METHODS
