@@ -574,6 +574,44 @@ sub on_gate_done_whois
    $self->_invoke_synthetic( "whois", $message, $hints, whois => \@whois );
 }
 
+=head1 COMMAND-SENDING METHODS
+
+The following methods actually send IRC commands. Each is named after the
+underlying IRC command it sends, using capital letters for methods that simply
+send that command.
+
+=cut
+
+=head2 do_PRIVMSG
+
+=head2 do_NOTICE
+
+Sends a C<PRIVMSG> or C<NOTICE> command.
+
+For convenience, a single C<target> argument may be provided which will be
+renamed to C<targets>. If C<targets> is an ARRAY reference, it will be turned
+into a comma-separated string.
+
+=cut
+
+sub _do_pmlike
+{
+   my $self = shift;
+   my $command = shift;
+
+   my %args = @_;
+
+   my $targets =
+      ( ref $args{targets} eq "ARRAY" ) ? join( ",", @{ $args{targets} } ) :
+      ( defined $args{target} )         ? delete $args{target} :
+                                          $args{targets};
+
+   $self->send_message( $command => { @_, targets => $targets } );
+}
+
+sub do_PRIVMSG { shift->_do_pmlike( PRIVMSG => @_ ) }
+sub do_NOTICE  { shift->_do_pmlike( NOTICE  => @_ ) }
+
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
