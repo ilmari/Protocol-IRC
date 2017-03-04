@@ -1,5 +1,13 @@
 Revision history for Protocol-IRC
 
+0.12    [CHANGES]
+         * Add WATCH-related server numerics
+         * Add RPL_WHOISSECURE as most networks use it now
+         * Allow construction of Protocol::IRC::Message instance using kvlist
+           of named arguments
+         * Recognise a 'join' gate for joining channels
+         * A very initial hack at gate futures
+
 0.11    [CHANGES]
          * Split out from Net-Async-IRC
          * Set an '_is_me' hint key for every _name or _nick, not just the
