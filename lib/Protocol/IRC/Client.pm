@@ -236,6 +236,17 @@ sub on_message_gate
       @morehints,
    );
 
+   my $futures;
+   if( $futures = $self->{Protocol_IRC_gate_futures}{$gate}{$target} and @$futures ) {
+      my $f = shift @$futures;
+      if( $effect eq "done" ) {
+         $f->done( $message, \%hints, $data );
+      }
+      else {
+         $f->fail( $hints->{text}, irc_gate => $message, \%hints );
+      }
+   }
+
    $self->invoke( "on_gate_${effect}_$gate", $message, \%hints, $data ) and $hints{handled} = 1;
    $self->invoke( "on_gate_$effect", $gate, $message, \%hints, $data ) and $hints{handled} = 1;
    $self->invoke( "on_gate", $effect, $gate, $message, \%hints, $data ) and $hints{handled} = 1;
@@ -436,6 +447,46 @@ No additional keys.
 
 # TODO: maybe JOIN gate should wait for initial events?
 
+=head2 next_gate_future
+
+   $f = $client->next_gate_future( $gate, $target )
+
+As an alternative to using the event handlers above, a client can instead
+obtain a L<Future> that will succeed or fail the next time a result on a given
+gate is received for a given target. This is often more convenient to use in a
+client, as it represents the result of running a command.
+
+If the gate completes successfully, then so will the future, yielding the same
+values as would be passed to the C<on_gate_done_GATE> event; namely that
+
+   ( $message, $hints, $data ) = $f->get
+
+If the gate fails, then so will the future, containing the text message from
+the error numeric as its failure message, C<irc_gate> as its category, and the
+full message and hints for it as the details.
+
+=cut
+
+sub next_gate_future
+{
+   my $self = shift;
+   my ( $gate, $target ) = @_;
+
+   $target = $self->casefold_name( $target // "*" );
+
+   my $futures = $self->{Protocol_IRC_gate_futures}{$gate}{$target} //= [];
+
+   my $f = $self->new_future;
+
+   push @$futures, $f;
+   $f->on_cancel( sub {
+      my ( $f ) = @_;
+      @$futures = grep { $_ != $f } @$futures
+   });
+
+   return $f;
+}
+
 =head1 INTERNAL MESSAGE HANDLING
 
 The following messages are handled internally by C<Protocol::IRC::Client>.
@@ -629,6 +680,21 @@ sub _do_pmlike
 
 sub do_PRIVMSG { shift->_do_pmlike( PRIVMSG => @_ ) }
 sub do_NOTICE  { shift->_do_pmlike( NOTICE  => @_ ) }
+
+=head1 REQUIRED METHODS
+
+As this class is an abstract base class, a concrete implementation must
+provide the following methods to complete it and make it useable.
+
+=cut
+
+=head2 new_future
+
+   $f = $client->new_future
+
+Returns a new L<Future> instance or subclass thereof.
+
+=cut
 
 =head1 AUTHOR
 

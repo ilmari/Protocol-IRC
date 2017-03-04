@@ -42,6 +42,8 @@ sub write_irc
 
 # names
 {
+   my $f = $irc->next_gate_future( names => "#channel" );
+
    write_irc( ':irc.example.com 353 MyNick = #channel :@Some +Users Here' . $CRLF );
    write_irc( ':irc.example.com 366 MyNick #channel :End of NAMES list' . $CRLF );
 
@@ -62,6 +64,10 @@ sub write_irc
                  here  => { nick => "Here",  flag => '' },
               },
               '$hints->{names}' );
+
+   ok( $f->is_ready, '$f is now ready' );
+   is_deeply( [ $f->get ], [ $message, $hints, $data ],
+      '$f->get' );
 }
 
 # bans
@@ -174,7 +180,11 @@ done_testing;
 package TestIRC;
 use base qw( Protocol::IRC::Client );
 
+use Future;
+
 sub new { return bless {}, shift }
+
+sub new_future { return Future->new }
 
 sub nick { "MyNick" }
 
