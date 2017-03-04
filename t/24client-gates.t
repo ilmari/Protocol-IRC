@@ -142,6 +142,33 @@ sub write_irc
               '$hints->{whois}' );
 }
 
+# join
+{
+   write_irc( ':MyNick!myuser@myhost.com JOIN #newchannel' . $CRLF );
+
+   my ( $kind, $gate, $message, $hints, $data ) = @{ shift @gates };
+
+   is( $kind, "done", 'Gate $kind is done' );
+   is( $gate, "join", 'Gate $gate is join' );
+
+   is( $hints->{target_name}, "#newchannel", '$hints->{target_name}' );
+   ok( $hints->{prefix_is_me}, '$hints->{prefix_is_me}' );
+
+   shift @messages;
+}
+
+# join fails
+{
+   write_irc( ':irc.example.com 473 MyNick #private :That channel is invite-only' . $CRLF );
+
+   my ( $kind, $gate, $message, $hints, $data ) = @{ shift @gates };
+
+   is( $kind, "fail", 'Gate $kind is fail' );
+   is( $gate, "join", 'Gate $gate is join' );
+
+   is( $hints->{target_name}, "#private", '$hints->{target_name}' );
+}
+
 done_testing;
 
 package TestIRC;

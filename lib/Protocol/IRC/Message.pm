@@ -415,7 +415,7 @@ my %ARG_NAMES = (
 
 # Misc. named commands
 $ARG_NAMES{$_} = { target_name => 0 } for qw(
-   JOIN LIST NAMES WHO WHOIS WHOWAS
+   LIST NAMES WHO WHOIS WHOWAS
 );
 
 # TODO: 472 ERR_UNKNOWNMODE: <char> :is unknown mode char to me for <channel>
@@ -563,6 +563,11 @@ it.
 
 Completes the gate with a successful result.
 
+=item *GATE
+
+Completes the gate with a successful result, but only if the nick in the
+message prefix relates to the connection it is received on.
+
 =item !GATE
 
 Completes the gate with a failure result.
@@ -590,8 +595,8 @@ while( <DATA> ) {
    chomp;
    m/^\s*#/ and next; # ignore comments
 
-   my ( $numname, $args, $gating ) = split m/\s*\|\s*/, $_ or next;
-   my ( $num, $name ) = split m/=/, $numname;
+   my ( $cmdname, $args, $gating ) = split m/\s*\|\s*/, $_ or next;
+   my ( $cmd, $name ) = split m/=/, $cmdname;
 
    my $index = 0;
    my %args = map {
@@ -604,9 +609,9 @@ while( <DATA> ) {
       }
    } split m/,/, $args;
 
-   $NUMERIC_NAMES{$num} = $name;
-   $ARG_NAMES{$num} = \%args;
-   $GATE_DISPOSITIONS{$num} = $gating if defined $gating;
+   $NUMERIC_NAMES{$cmd} = $name;
+   $ARG_NAMES{$cmd} = \%args;
+   $GATE_DISPOSITIONS{$cmd} = $gating if defined $gating;
 }
 close DATA;
 
@@ -621,6 +626,8 @@ close DATA;
 #   http://www.alien.net.au/irc/irc2numerics.html
 
 __DATA__
+JOIN | 0=target_name | *join
+
 001=RPL_WELCOME         | text
 002=RPL_YOURHOST        | text
 003=RPL_CREATED         | text
@@ -681,7 +688,7 @@ __DATA__
 
 401=ERR_NOSUCHNICK              | target_name,text
 402=ERR_NOSUCHSERVER            | server_name,text
-403=ERR_NOSUCHCHANNEL           | target_name,text
+403=ERR_NOSUCHCHANNEL           | target_name,text | !join
 404=ERR_CANNOTSENDTOCHAN        | target_name,text
 405=ERR_TOOMANYCHANNELS         | target_name,text
 406=ERR_WASNOSUCHNICK           | target_name,text
@@ -698,12 +705,12 @@ __DATA__
 
 467=ERR_KEYSET                  | target_name,text
 
-471=ERR_CHANNELISFULL           | target_name,text
-473=ERR_INVITEONLYCHAN          | target_name,text
-474=ERR_BANNEDFROMCHAN          | target_name,text
-475=ERR_BADCHANNELKEY           | target_name,text
-476=ERR_BADCHANMASK             | target_name,text
-477=ERR_NEEDREGGEDNICK          | target_name,text
+471=ERR_CHANNELISFULL           | target_name,text | !join
+473=ERR_INVITEONLYCHAN          | target_name,text | !join
+474=ERR_BANNEDFROMCHAN          | target_name,text | !join
+475=ERR_BADCHANNELKEY           | target_name,text | !join
+476=ERR_BADCHANMASK             | target_name,text | !join
+477=ERR_NEEDREGGEDNICK          | target_name,text 
 478=ERR_BANLISTFULL             | target_name,text
 
 482=ERR_CHANOPRIVSNEEDED        | target_name,text

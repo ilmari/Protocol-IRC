@@ -267,14 +267,18 @@ sub incoming_message
    }
 
    if( my $disp = $message->gate_disposition ) {
-      my ( $type, $gate ) = $disp =~ m/^([-+!])(.*)$/;
+      my ( $type, $gate ) = $disp =~ m/^([-+!*])(.*)$/;
       my $effect = ( $type eq "-" ? "more" :
                      $type eq "+" ? "done" :
-                     $type eq "!" ? "fail" : die "TODO" );
+                     $type eq "!" ? "fail" :
+                     $type eq "*" ? ( $hints->{prefix_is_me} ? "done" : undef ) :
+                     die "TODO" );
 
-      $self->invoke( "on_message_gate_${effect}_$gate", $message, $hints ) and $hints->{handled} = 1;
-      $self->invoke( "on_message_gate_$effect", $gate, $message, $hints ) and $hints->{handled} = 1;
-      $self->invoke( "on_message_gate", $effect, $gate, $message, $hints ) and $hints->{handled} = 1;
+      if( defined $effect ) {
+         $self->invoke( "on_message_gate_${effect}_$gate", $message, $hints ) and $hints->{handled} = 1;
+         $self->invoke( "on_message_gate_$effect", $gate, $message, $hints ) and $hints->{handled} = 1;
+         $self->invoke( "on_message_gate", $effect, $gate, $message, $hints ) and $hints->{handled} = 1;
+      }
    }
 
    $self->invoke( "on_message_$command", $message, $hints ) and $hints->{handled} = 1;
