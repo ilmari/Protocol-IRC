@@ -428,6 +428,14 @@ sub prepare_gatehints_whois
    return whois => \@whois;
 }
 
+=head2 join
+
+No additional keys.
+
+=cut
+
+# TODO: maybe JOIN gate should wait for initial events?
+
 =head1 INTERNAL MESSAGE HANDLING
 
 The following messages are handled internally by C<Protocol::IRC::Client>.
