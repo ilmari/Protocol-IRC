@@ -647,13 +647,19 @@ sub prepare_hints_RPL_CHANNELMODEIS
 
 The following methods actually send IRC commands. Each is named after the
 underlying IRC command it sends, using capital letters for methods that simply
-send that command.
+send that command. They all take a kvlist of named parameters which is used to
+construct the message to send, by calling the
+L<Protocol::IRC::Message/new_from_named_args> constructor.
 
 =cut
 
 =head2 do_PRIVMSG
 
 =head2 do_NOTICE
+
+   $client->do_PRIVMSG( target => $user_or_channel, text => $message )
+
+   $client->do_NOTICE( target => $user_or_channel, text => $message )
 
 Sends a C<PRIVMSG> or C<NOTICE> command.
 
