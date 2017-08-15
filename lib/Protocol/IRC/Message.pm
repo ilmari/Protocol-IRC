@@ -472,9 +472,12 @@ or returned before a message object itself is constructed.
 
 =cut
 
+sub _arg_names { %ARG_NAMES }
+
 sub arg_names
 {
    my $command;
+   my %arg_names = $_[0]->_arg_names;
 
    if( ref $_[0] ) {
       my $self = shift;
@@ -486,7 +489,7 @@ sub arg_names
       defined $command or croak 'Usage: '.__PACKAGE__.'->arg_names($command)';
    }
 
-   return $ARG_NAMES{$command};
+   return $arg_names{$command};
 }
 
 =head2 named_args

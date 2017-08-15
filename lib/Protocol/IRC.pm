@@ -13,7 +13,10 @@ our $VERSION = '0.12';
 use Carp;
 use Scalar::Util qw( blessed );
 
-use Protocol::IRC::Message;
+sub message_class {
+    require Protocol::IRC::Message;
+    return 'Protocol::IRC::Message';
+}
 
 # This should be mixed in MI-style
 
@@ -204,7 +207,7 @@ sub on_read
       # Ignore blank lines
       next if !length $line;
 
-      $self->incoming_message( Protocol::IRC::Message->new_from_line( $line ) );
+      $self->incoming_message( $self->message_class->new_from_line( $line ) );
    }
 }
 
@@ -297,13 +300,13 @@ This method takes arguments in three different forms, depending on their
 number and type.
 
 If the first argument is a reference then it must contain a
-C<Protocol::IRC::Message> instance which will be sent directly:
+C<$self->message_class> instance which will be sent directly:
 
    $irc->send_message( $message )
 
 Otherwise, the first argument must be a plain string that gives the command
 name. If the second argument is a hash, it provides named arguments in a form
-similar to L<Protocol::IRC::Message/new_from_named_args>, otherwise the
+similar to L<$self->message_class/new_from_named_args>, otherwise the
 remaining arguments must be the prefix string and other positional arguments,
 as plain strings:
 
@@ -340,8 +343,8 @@ sub send_message
 
    if( @_ == 1 ) {
       $message = shift;
-      blessed $message and $message->isa( "Protocol::IRC::Message" ) or
-         croak "Expected an instance of Protocol::IRC::Message";
+      blessed $message and $message->isa( $self->message_class ) or
+         croak "Expected an instance of " . $self->message_class;
    }
    else {
       my $command = shift;
@@ -357,20 +360,20 @@ sub send_message
             $args{text} = $encoder->encode( $args{text} );
          }
 
-         $message = Protocol::IRC::Message->new_from_named_args( $command, %args );
+         $message = $self->message_class->new_from_named_args( $command, %args );
       }
       else {
          my ( $prefix, @args ) = @_;
 
          if( my $encoder = $self->encoder ) {
-            my $argnames = Protocol::IRC::Message->arg_names( $command );
+            my $argnames = $self->message_class->arg_names( $command );
 
             if( defined( my $i = $argnames->{text} ) ) {
                $args[$i] = $encoder->encode( $args[$i] ) if defined $args[$i];
             }
          }
 
-         $message = Protocol::IRC::Message->new( $command, $prefix, @args );
+         $message = $self->message_class->new( $command, $prefix, @args );
       }
    }
 
