@@ -696,6 +696,7 @@ JOIN | 0=target_name | *join
 405=ERR_TOOMANYCHANNELS         | target_name,text
 406=ERR_WASNOSUCHNICK           | target_name,text
 408=ERR_NOSUCHSERVICE           | target_name,text
+409=ERR_NOORIGIN                | text
 
 432=ERR_ERRONEUSNICKNAME        | nick,text
 433=ERR_NICKNAMEINUSE           | nick,text
