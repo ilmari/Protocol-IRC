@@ -120,14 +120,10 @@ sub new_from_named_args
 
    my $argnames = $class->arg_names( $command );
 
-   my @args;
+   my ($prefix, @args);
 
    foreach my $name ( keys %$argnames ) {
       my $idx = $argnames->{$name};
-
-      # Clients don't get to set prefix nick
-      # TODO: servers do
-      next if $idx eq "pn";
 
       if( ref $idx eq 'ARRAY') {
           croak "$command argument '$name' value must be '$idx->[1]', not '$args{$name}'"
@@ -136,7 +132,7 @@ sub new_from_named_args
           next;
       }
 
-      defined( my $value = $args{$name} ) or
+      defined( my $value = $args{$name} ) or $idx eq 'pn' or # prefix is optional
          croak "$command requires a named argmuent of '$name'";
 
       if( $idx =~ m/^\d+$/ ) {
@@ -160,12 +156,15 @@ sub new_from_named_args
          }
          @args[$start..$end] = @$value;
       }
+      elsif( $idx eq 'pn' ) {
+         $prefix = $value;
+      }
       else {
          die "TODO: not sure what to do with argname idx $idx\n";
       }
    }
 
-   return $class->new( $command, undef, @args );
+   return $class->new( $command, $prefix, @args );
 }
 
 =head2 new_with_tags
