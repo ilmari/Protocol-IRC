@@ -28,4 +28,8 @@ test_named KICK =>
    { text => "go away", target_name => "#channel", kicked_nick => "BadUser" },
    "KICK #channel BadUser :go away";
 
+test_named MODE =>
+   { target_name => '#foo', modechars => '+b', modeargs => [qw(bar!baz@zoot bat!quux@quuz)] },
+   'MODE #foo +b bar!baz@zoot bat!quux@quuz';
+
 done_testing;

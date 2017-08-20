@@ -133,7 +133,25 @@ sub new_from_named_args
          croak "$command requires a named argmuent of '$name'";
 
       if( $idx =~ m/^\d+$/ ) {
-         $args[$idx] = $args{$name};
+         $args[$idx] = $value;
+      }
+      elsif( $idx =~ m/^(\d+)@/ ) {
+         $value = [ $value ] unless ref $value eq 'ARRAY';
+         $args[$1] = join(" ", @$value);
+      }
+      elsif( $idx =~ m/^(\d+)?\.\.(\d+)?$/ ) {
+         my ( $start, $end ) = ( $1, $2 );
+         $start //= 0;
+         $value = [ $value ] unless ref $value eq 'ARRAY';
+         if (defined $end) {
+            my $len = $end - $start + 1;
+            croak "$command argument '$name' must be $len words"
+               unless @$value == $len;
+         }
+         else {
+            $end = $start + @$value - 1;
+         }
+         @args[$start..$end] = @$value;
       }
       else {
          die "TODO: not sure what to do with argname idx $idx\n";
