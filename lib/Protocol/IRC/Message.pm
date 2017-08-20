@@ -129,6 +129,13 @@ sub new_from_named_args
       # TODO: servers do
       next if $idx eq "pn";
 
+      if( ref $idx eq 'ARRAY') {
+          croak "$command argument '$name' value must be '$idx->[1]', not '$args{$name}'"
+              if exists $args{$name} and $args{name} ne $idx->[1];
+          $args[$idx->[0]] = $idx->[1];
+          next;
+      }
+
       defined( my $value = $args{$name} ) or
          croak "$command requires a named argmuent of '$name'";
 
@@ -552,6 +559,12 @@ sub named_args
       }
       elsif( $argindex =~ m/^(-?\d+)\@$/ ) {
          $value = [ split ' ', $self->arg( $1 ) ];
+      }
+      elsif( ref $argindex eq 'ARRAY' ) {
+          my ($idx, $val) = @$argindex;
+          $value = $self->arg( $idx );
+          die "Agument at index $idx must be '$val', not '$value'"
+              unless $value eq $val;
       }
       else {
          die "Unrecognised argument specification $argindex";
