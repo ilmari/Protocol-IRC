@@ -176,6 +176,8 @@ containing the given IRCv3 tags.
 
 =cut
 
+my %NAME_NUMERIC;
+
 sub new_with_tags
 {
    my $class = shift;
@@ -188,6 +190,7 @@ sub new_with_tags
    # Less strict checking than RFC 2812 because a lot of servers lately seem
    # to be more flexible than that.
 
+   $command = $NAME_NUMERIC{$command} if exists $NAME_NUMERIC{$command};
    $command =~ m/^[A-Z]+$/ or $command =~ m/^\d\d\d$/ or
       croak "Command must be just letters or three digits";
 
@@ -643,6 +646,7 @@ while( <DATA> ) {
    } split m/,/, $args;
 
    $NUMERIC_NAMES{$cmd} = $name;
+   $NAME_NUMERIC{$name} = $cmd if defined $name;
    $ARG_NAMES{$cmd} = \%args;
    $GATE_DISPOSITIONS{$cmd} = $gating if defined $gating;
 }
